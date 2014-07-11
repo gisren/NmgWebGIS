@@ -1,0 +1,1334 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2012 中科宇图天下科技有限公司 - 环保事业部
+//
+// 测量模块
+// 
+// 显示网格化管理
+// 
+// Author：XUNAN
+// Date：2012.07.31
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<viewer:BaseWidget xmlns:esri="http://www.esri.com/2008/ags"
+				   xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:viewer="com.esri.viewer.*"
+				   xmlns:pageNavigation="com.mapUni.UtilComponent.pageNavigation.*" 
+				   widgetConfigLoaded="init()"
+				   
+				   verticalGap="1"
+				   >
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.FeatureSet;
+			import com.esri.ags.Graphic;
+			import com.esri.ags.Units;
+			import com.esri.ags.events.DrawEvent;
+			import com.esri.ags.geometry.Geometry;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.geometry.Polyline;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.symbols.PictureMarkerSymbol;
+			import com.esri.ags.symbols.SimpleMarkerSymbol;
+			import com.esri.ags.symbols.TextSymbol;
+			import com.esri.ags.tasks.GeometryServiceSingleton;
+			import com.esri.ags.tools.DrawTool;
+			import com.esri.ags.utils.GeometryUtil;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			import com.esri.viewer.managers.MapManager;
+			import com.mapUni.BaseClass.LayerRenderer.LayerRenderer;
+			import com.mapUni.BaseClass.MapUni;
+			import com.mapUni.UtilComponent.pageNavigation.UE_PageNavigationEvent;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.core.FlexGlobals;
+			import mx.events.EffectEvent;
+			import mx.managers.CursorManager;
+			
+			import org.osmf.layout.AbsoluteLayoutFacet;
+			
+			import spark.events.IndexChangeEvent;
+			
+			private var selectedDrawingIcon:Image;
+			private var selectedReseauIcon:Image;
+			
+			private var bool_Regional:Boolean = true;//控制区域效果
+			private var la_Regional:LayerRenderer;//控制区域图形
+			
+			private var bool_City:Boolean = true;//控制市效果
+			private var la_City:LayerRenderer;//控制市图形
+			
+			private var bool_County:Boolean = true;//控制县效果
+			private var la_County:LayerRenderer;//控制县图形
+			private var geometryLayer:GraphicsLayer;//画范围的
+			
+			
+			private var thisMain:Object;
+			private var infoValue:Object;
+			private var polluteLayer:GraphicsLayer = new GraphicsLayer();
+			private var appCompoent:UIComponent = new UIComponent();//主控件
+			private var fade:Fade = new Fade();
+			
+			[Bindable]
+			private var dataProvider_Regional:ArrayCollection;
+			[Bindable]
+			private var dataProvider_City:ArrayCollection;
+			[Bindable]
+			private var dataProvider_County:ArrayCollection;
+			[Bindable]
+			private var searchResultAC:ArrayCollection = new ArrayCollection();
+			
+			/**
+			 * 收集当前已绘制折线的点 
+			 */
+			private var drawLinePointAry:Array = new Array();
+			
+			/**
+			 * 标识是否正在进行距离测量 
+			 */
+			private var drawingLine:Boolean = false;
+			
+			[Embed(source="assets/yutuImages/mapIcon/pushpin_centered.png")]
+			private var imageCursor:Class;
+			/**
+			 * 选中企业的属性信息
+			 * */
+			private var selectedFacGra:Object=new Object();
+		 
+			[Bindable] private var codeArr1:ArrayCollection = new ArrayCollection();
+			[Bindable] private var codeArr2:ArrayCollection = new ArrayCollection();
+			[Bindable] private var codeArr3:ArrayCollection = new ArrayCollection();
+			
+			private var regionCode:String; //地区的编码
+			private var initLevel:String;
+			private var level:String;//图层区域等级
+			private var codeNum:Number=0;
+			private function init():void
+			{
+				
+				//getNetCode();
+				
+				appCompoent = FlexGlobals.topLevelApplication as UIComponent;
+				wTemplate.widgetIcon ="assets/images/yutu/space.png";
+				thisMain=this;
+				
+				info_line.graphics.lineStyle(0,0x666666);
+				info_line.graphics.moveTo(0,0);
+				info_line.graphics.lineTo(230,0);
+				
+				control_line.graphics.lineStyle(0,0x999999);
+				control_line.graphics.moveTo(0,0);
+				control_line.graphics.lineTo(230,0);
+				
+				map.addLayer(polluteLayer);
+				
+				wTemplate.addTitlebarButton("assets/images/i_searchgraphical.png", "搜索", function():void{
+					thisMain.currentState = "searchInput";
+				});
+				wTemplate.addTitlebarButton("assets/images/i_table.png","结果集" , function():void{
+					thisMain.currentState = "resultsList";
+				});
+				
+				//ExternalInterface.addCallback("GetRegionalQJ", getRegionalQJ);
+				
+				ViewerContainer.addEventListener(AppEvent.Reseau_Type,ReseauType);
+				ViewerContainer.addEventListener(AppEvent.CLEAR_MAP,onClearMap);
+			}
+			
+			
+			/**
+			 * 获得省级
+			 */
+//			private function getRegionalQJ(param:String):void
+//			{
+//			  if(param){
+//					dataProvider_Regional = new ArrayCollection();
+//					dataProvider_Regional.addItem(param);
+//					qylx_QJ.dataProvider = dataProvider_Regional; 
+//					qylx_QJ.selectedIndex = 0 ; 
+//				 }
+//			} 
+			public function getNetCode():void
+			{
+				var	Code=ExternalInterface.call("getGrid", "test");
+				  
+				  //Code="219000,219100";
+				  //Code="210100,210200";
+				  //Code="210782,211381";
+				
+				//Code="219000";
+				if (Code)
+				{
+					var arr:Array = Code.split(',');
+					codeNum=arr.length;
+					codeArr1=new ArrayCollection();
+					codeArr2=new ArrayCollection();
+					codeArr3=new ArrayCollection();
+					
+					
+					if(arr.length>1)
+					{   
+						for each(var s:String in arr)
+						{
+							codeQuery(s);
+							initLevel=getLayerLevel(s);
+						}
+					}
+					else
+					{
+						codeQuery(Code);
+						initLevel=getLayerLevel(Code);
+					}
+				}
+			}
+
+			/**
+			 * 监听：工具条上清除按钮的点击 
+			 */
+			private function onClearMap(event:AppEvent):void
+			{
+				thisMain.currentState = "searchInput";
+				//恢复菜单索引
+				resuleList.dataProvider=new ArrayCollection();
+				//晴空列表数据
+				CursorManager.removeBusyCursor();
+				//参数鼠标繁忙状态
+				polluteLayer.clear();
+				
+				//清楚查询结果层
+				map.infoWindow.hide();
+			}
+			
+			
+			
+			/**
+			 * 准备网格化
+			 */
+			private function activateReseau(event:MouseEvent):void
+			{
+				closeRegional();
+				geometryLayer = new GraphicsLayer();
+				geometryLayer.id="geometryLayer";
+				// apply glow
+				selectedReseauIcon = Image(event.currentTarget);
+				//clearSelectionFilter();
+				selectedReseauIcon.filters = [ glowFilter ];
+				
+				var reseauType:String = selectedReseauIcon.name;
+				//var drawStatus:String = "";
+				switch (reseauType)
+				{
+					case "Reseau_Regional":
+					{
+						closeRegional();
+						bool_Regional = true;
+						
+						la_Regional = new LayerRenderer(map,configXML.regionalUrl,"name", onGetRegion, null, "1=1","ReseauType");
+						la_Regional.addRenderer();
+						
+						function onGetRegion(graphic:Graphic):void
+						{
+							if(bool_Regional == true)
+							{
+								var code:String = graphic.attributes["CODE"];
+								ExternalInterface.call("GetExternal_Regional",code);
+								la_Regional = new LayerRenderer(map,configXML.regionalUrl,"name", onGetRegion, null, "1=1","ReseauType");
+								la_Regional.addRenderer();
+							}
+						}
+						break;
+						}
+						case "Reseau_City":
+						{
+							closeRegional();
+							bool_City = true;
+							
+							la_City = new LayerRenderer(map, configXML.cityUrl,"name", onGetRegionCity, null, "1=1","ReseauType");
+							la_City.addRenderer();
+							
+							function onGetRegionCity(graphic:Graphic):void
+							{
+								if(bool_City == true)
+								{
+									var code:String = graphic.attributes["code"];
+									ExternalInterface.call("GetExternal_City",code);
+									la_City = new LayerRenderer(map, configXML.cityUrl,"name", onGetRegionCity, null,"1=1","ReseauType");
+									la_City.addRenderer();
+								}
+							}
+							break;
+							}
+							
+							case "Reseau_County":
+							{	
+								closeRegional();
+								bool_County = true;
+								
+								la_County = new LayerRenderer(map, configXML.countyUrl,"name", onGetRegionCounty, null, "1=1","ReseauType");
+								la_County.addRenderer();
+								
+								function onGetRegionCounty(graphic:Graphic):void
+								{
+									if(bool_County == true)
+									{
+										var code:String = graphic.attributes["code"];
+										ExternalInterface.call("GetExternal_County",code);
+										la_County = new LayerRenderer(map, configXML.countyUrl,"name", onGetRegionCounty, null, "1=1","ReseauType");
+										la_County.addRenderer();
+									}
+								}
+								break;
+									
+								}
+								
+								case "Reseau_GetPollute":
+								{
+									showMessageToolTipBor();//提示框
+									closeRegional();
+									
+									var qj:String = null;
+									var sj:String = null;
+									var xj:String = null;
+									var queryString:String = null;//查询条件
+									var queryUrl:String = null;//查询条件
+									
+									if(qylx_QJ.selectedItem != null)
+									{
+										if(qylx_QJ.selectedItem.name != "全部")
+										{
+											qj = qylx_QJ.selectedItem.name;
+										}
+									}
+									if(qylx_SJ.selectedItem != null)
+									{
+										if(qylx_SJ.selectedItem.name != "全部")
+										{
+											sj = qylx_SJ.selectedItem.name;
+										}
+									}
+									if(qylx_XJ.selectedItem != null)
+									{
+										if(qylx_XJ.selectedItem.name != "全部")
+										{
+											xj = qylx_XJ.selectedItem.name;
+										}
+									}
+									
+									if(qj == null && sj == null && xj == null)//全部范围
+									{
+										queryString = "1=1";
+										queryUrl = configXML.regionalUrl;
+									}
+									else if(qj != null && sj == null && xj == null)//区域范围
+									{
+										var xcode:int = getCityPreCode(qj)//获得省父级代码
+										queryString = "PRECODE=" +xcode;
+										queryUrl = configXML.cityUrl;
+									}
+									else if(sj != null && xj == null)//市范围
+									{
+										getCountyPollute(sj)//获得县市污染源
+										
+									}
+									else if(xj != null)//县范围
+									{
+										queryString = "name= '" + xj +" '";
+										queryUrl = configXML.countyUrl;
+									}
+									
+									la_Regional = new LayerRenderer(map,queryUrl,"name", onGetPollute, null, queryString,"ReseauType");
+									la_Regional.addRenderer();
+									function onGetPollute(graphic:Graphic):void
+									{
+										if(graphic != null)
+										{
+											var gc:Graphic = getRegionGraphic(graphic.geometry);
+											
+											
+											geometryLayer.add(gc);
+											map.addLayer(geometryLayer,1);//画范围
+											
+											MapUni.search(configXML.polluteUrl, graphic.geometry, "", onSearchResult);
+										}
+									}
+									break;
+									}
+								}
+							}
+							public function ReseauType(event:AppEvent):void
+							{
+								var graphic:Graphic= event.data as Graphic;
+								closeRegional();
+								geometryLayer = new GraphicsLayer();
+								geometryLayer.id="geometryLayer";
+								
+								if(graphic != null)
+								{
+									var gc:Graphic = getRegionGraphic(graphic.geometry);
+									
+									
+									geometryLayer.add(gc);
+									map.addLayer(geometryLayer,1);//画范围
+									
+									MapUni.search(configXML.polluteUrl, graphic.geometry, "", onSearchResult);
+								}
+							}
+							
+							/**
+							 * 显示退出提示  
+							 */
+							private function showMessageToolTipBor():void
+							{
+								canbox.visible = true;
+								setTimeout(fadeEffect, 1000, canbox);
+							}
+							
+							/**
+							 * 渐变淡出效果
+							 */
+							private function fadeEffect(target:Object):void
+							{
+								fade = new Fade(target);
+								fade.alphaFrom = 1;
+								fade.alphaTo = 0;
+								fade.duration = 3000;
+								fade.addEventListener(EffectEvent.EFFECT_END, onEscEffectEnd);	
+								fade.play();
+							}
+							
+							/**
+							 * 监听退出提示框的淡出效果的完成
+							 */
+							private function onEscEffectEnd(event:EffectEvent):void
+							{
+								canbox.visible = false;
+								canbox.alpha = 1;
+							}
+							
+							/**
+							 * 搜索地图结束事件
+							 */
+							private function onSearchResult(event:FeatureSet):void
+							{
+								this.mouseEnabled=true;
+								this.mouseChildren=true;
+								
+								wTemplate.selectedTitlebarButtonIndex=1;
+								thisMain.currentState = "resultsList";
+								
+								//跳转到结果集面板
+								searchResultAC.removeAll();
+								for each(var wry:Graphic in event.features){
+									searchResultAC.addItem({name:wry.attributes.QYMC,value:wry});
+								}
+								pageNavi.pageData=searchResultAC;
+								map.zoomToInitialExtent();
+								//分页数据混总
+								//给选中企业属性赋值 
+								selectedFacGra = wry.attributes;
+							}
+							
+							
+							/**
+							 * 监听翻页事件
+							 */
+							private function pageNavi_changeHandler(event:UE_PageNavigationEvent):void
+							{
+								map.infoWindow.hide();
+								//
+								var pageData:ArrayCollection = event.data as ArrayCollection;
+								resuleList.dataProvider=pageData;
+								resuleList.labelField="name";
+								//
+								polluteLayer.clear();
+								//清除原始
+								for(var i:Number=0;i<pageData.length;i++){
+									var wry:Graphic=pageData[i].value;
+									wry.symbol=new PictureMarkerSymbol("assets/yutuImages/proIcon/WRY.png",20,20);
+									wry.addEventListener(MouseEvent.CLICK,function(event:MouseEvent):void{
+										setInfo(event.currentTarget as Graphic);
+										
+									});
+									polluteLayer.add(wry);
+								}
+								MapUni.dataExtent(polluteLayer.graphicProvider,map);
+								//缩放至搜索区域
+							}
+							/**
+							 * 搜索列表选择事件
+							 */
+							private function resuleList_changeHandler(event:IndexChangeEvent):void
+							{
+								setInfo((event.target as List).selectedItem.value as Graphic);
+							}
+							/**
+							 * 设置气泡信息
+							 */
+							private function setInfo(wry:Graphic):void{
+								
+								var mapPoint:MapPoint=wry.geometry as MapPoint;
+								map.infoWindow.content=info;
+								map.infoWindow.content.visible=true;
+								map.infoWindow.show(mapPoint);
+								//显示气泡
+								info_name.text=wry.attributes.QYMC;
+								info_frdb.text=wry.attributes.FRDB;
+								info_lxr.text=wry.attributes.HBLXR
+								info_qydi.text=wry.attributes.QYDZ
+								/* 				info_bz.text=wry.attributes.BZ; */
+								//设置信息
+								infoValue={entName:wry.attributes.QYDZ,mPoint:mapPoint};
+								//
+								map.centerAt(mapPoint);
+								//地图居中
+							}
+							
+							//操作面板过程－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
+							/**
+							 * 打开面板事件
+							 */
+							private function widgetOpenedHandler(event:Event):void
+							{
+								
+							}
+							/**
+							 * 退出面板事件
+							 */
+							private function widgetClosedHandler(event:Event):void
+							{
+								closeRegional();//关闭效果与图形 	
+								if(polluteLayer!=null)
+								{
+									polluteLayer.clear();
+								}
+								if(geometryLayer!=null)
+								{
+									geometryLayer.clear();
+								}	
+								 
+							}
+							//搜索过程页面－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
+							
+							/**
+							 * 监听：区县下拉列表的选择  
+							 */
+							private function countyListSearch():void
+							{
+								var itemData:Object = qylx_SJ.selectedItem as Object;
+								if(itemData.name =="全部")
+								{
+									qylx_XJ.dataProvider = null;
+								}
+								else
+								{
+									setCountyList(itemData.code);//给市赋值
+								}
+							}
+							
+							/**给区县列表赋值  */
+							private function setCountyList(code:String):void
+							{
+								var layerUrl:String = configXML.countyUrl;
+								
+								var codeField:String = "code"; 
+								var nameField:String = "name";
+								
+								var qWhere:String = codeField + " like '" + code.toString().substr(0, 4) + "%'";
+								
+								MapUni.search(layerUrl, null, qWhere, result, null, [nameField, codeField]);
+								
+								function result(featureSet:FeatureSet):void
+								{
+									var countyArray:Array = featureSet.features;
+									dataProvider_County = new ArrayCollection([{name:"全部", code:-1, graph:null}]);
+									
+									for(var i:int=0; i<countyArray.length; i++)
+									{
+										var graphic:Graphic = countyArray[i];
+										var object:Object = new Object();
+										object.name = graphic.attributes[nameField];
+										object.code = graphic.attributes[codeField];
+										object.graph = graphic;
+										
+										dataProvider_County.addItem(object);
+									}
+									qylx_XJ.dataProvider = dataProvider_County;
+									qylx_XJ.selectedIndex =0;
+								}
+							}
+							
+							/**
+							 * 监听：地市下拉列表的选择  
+							 */
+							private function cityListSearch():void
+							{
+								var itemData:Object = qylx_QJ.selectedItem as Object;
+								
+								if(itemData.name =="全部")
+								{
+									qylx_SJ.dataProvider = null;
+									qylx_XJ.dataProvider = null;
+								}
+								else
+								{
+									if(itemData.name == "辽东南网格")
+										setCityList("1");//给市赋值
+									else if(itemData.name == "辽西网格")
+										setCityList("2");//给市赋值
+									else if(itemData.name == "辽中网格")
+										setCityList("3");//给市赋值
+									else if(itemData.name == "辽北网格")
+										setCityList("4");//给市赋值
+									else if(itemData.name == "大伙房水源地网格")
+										setCityList("5");//给市赋值
+								}
+							}
+							
+							
+							/**给市列表赋值  */
+							private function setCityList(code:String):void
+							{
+								var layerUrl:String = configXML.cityUrl;
+								
+								var codeField:String = "PRECODE"; 
+								var nameField:String = "name";
+								
+								var qWhere:String = codeField + " = " + code ;
+								
+								MapUni.search(layerUrl, null, qWhere, result, null, [nameField, "code"]);
+								
+								function result(featureSet:FeatureSet):void
+								{
+									var countyArray:Array = featureSet.features;
+									dataProvider_City = new ArrayCollection([{name:"全部", code:-1, graph:null}]);
+									
+									for(var i:int=0; i<countyArray.length; i++)
+									{
+										var graphic:Graphic = countyArray[i];
+										var object:Object = new Object();
+										object.name = graphic.attributes[nameField];
+										object.code = graphic.attributes["code"];
+										object.graph = graphic;
+										
+										dataProvider_City.addItem(object);
+									}
+									qylx_SJ.dataProvider = dataProvider_City;
+									qylx_SJ.selectedIndex =0;
+								}
+							}
+							
+							/**
+							 * 鼠标移入按钮 
+							 */
+							private function drawIcon_rollOverHandler(event:MouseEvent):void
+							{
+								event.target.filters = [ glowFilter ];
+							}
+							/**
+							 * 鼠标移出按钮 
+							 */
+							private function drawIcon_rollOutHandler(event:MouseEvent):void
+							{
+								clearSelectionFilter();
+							}
+							
+							
+							/**
+							 * 清除按钮选中效果 
+							 */
+							private function clearSelectionFilter():void
+							{
+								for (var i:int = 0; i < QJGroup.numChildren; i++)
+								{
+									if (QJGroup.getChildAt(i).filters && QJGroup.getChildAt(i).filters.length > 0)
+									{
+										if (!(selectedDrawingIcon && QJGroup.getChildAt(i) === selectedDrawingIcon))
+										{
+											QJGroup.getChildAt(i).filters = [];
+										}
+									}
+								}
+								for (var i:int = 0; i < SJGroup.numChildren; i++)
+								{
+									if (SJGroup.getChildAt(i).filters && SJGroup.getChildAt(i).filters.length > 0)
+									{
+										if (!(selectedDrawingIcon && SJGroup.getChildAt(i) === selectedDrawingIcon))
+										{
+											SJGroup.getChildAt(i).filters = [];
+										}
+									}
+								}
+								for (var i:int = 0; i < SJGroup.numChildren; i++)
+								{
+									if (XJGroup.getChildAt(i).filters && XJGroup.getChildAt(i).filters.length > 0)
+									{
+										if (!(selectedDrawingIcon && XJGroup.getChildAt(i) === selectedDrawingIcon))
+										{
+											XJGroup.getChildAt(i).filters = [];
+										}
+									}
+								}
+								for (var i:int = 0; i < XZGroup.numChildren; i++)
+								{
+									if (XZGroup.getChildAt(i).filters && XZGroup.getChildAt(i).filters.length > 0)
+									{
+										if (!(selectedDrawingIcon && XZGroup.getChildAt(i) === selectedDrawingIcon))
+										{
+											XZGroup.getChildAt(i).filters = [];
+										}
+									}
+								}
+							}
+							
+							
+							/**
+							 * 关闭效果与图形 
+							 */
+							private function closeRegional():void
+							{
+								bool_Regional = false;//关闭效果(区域)
+								bool_City = false;//关闭效果(区域)
+								bool_County = false;//关闭效果(区域)
+								if(la_Regional != null)
+								{
+									la_Regional.clearLayer();//关闭图像(区域)
+								}
+								if(la_City != null)
+								{
+									la_City.clearLayer();//关闭图像(区域)
+								}
+								if(la_County != null)
+								{
+									la_County.clearLayer();//关闭图像(区域)
+								}
+								
+								if (selectedDrawingIcon)
+								{
+									selectedDrawingIcon = null;
+								}
+								
+								wTemplate.selectedTitlebarButtonIndex=0;
+								//恢复菜单索引
+								thisMain.currentState = "searchInput";
+								//恢复菜单索引
+								resuleList.dataProvider=new ArrayCollection();
+								//晴空列表数据
+								CursorManager.removeBusyCursor();
+								//参数鼠标繁忙状态
+								polluteLayer.clear();
+								
+								//清楚查询结果层
+								map.infoWindow.hide();
+								//清除气泡信息层
+								map.removeLayer(geometryLayer);
+								//清楚效果
+							}
+							
+							
+							
+							/**
+							 * 调用几何服务时报错 
+							 */
+							private function geometryService_faultHandler(info:Object, token:Object = null):void
+							{
+								showErrorInfo(info.toString());
+							}
+							
+							/**
+							 * 显示错误信息 
+							 */
+							private function showErrorInfo(errorInfo:String):void
+							{
+								var widgetInfo:String = 
+									"名称：测量模块\n" +
+									"功能：测量点的经纬度、线的距离、面的面积\n";
+								MapUni.errorWindow(widgetInfo + errorInfo)
+							}
+							
+							
+							/**
+							 * 搜索
+							 */
+							private function query():void
+							{
+								closeRegional();//险关闭效果
+								var qj:String = null;
+								var sj:String = null;
+								var xj:String = null;
+								
+								if(qylx_QJ.selectedItem != null)
+								{
+									if(qylx_QJ.selectedItem.name != "全部")
+									{
+										qj = qylx_QJ.selectedItem.name;
+									}
+								}
+								if(qylx_SJ.selectedItem != null)
+								{
+									if(qylx_SJ.selectedItem.name != "全部")
+									{
+										sj = qylx_SJ.selectedItem.name;
+									}
+								}
+								if(qylx_XJ.selectedItem != null)
+								{
+									if(qylx_XJ.selectedItem.name != "全部")
+									{
+										xj = qylx_XJ.selectedItem.name;
+									}
+								}
+								
+								if(qj == null && sj == null && xj == null)//全部范围
+								{
+									la_Regional = new LayerRenderer(map,configXML.regionalUrl,"name", on_Regional, null, "1=1","ReseauType");
+									la_Regional.addRenderer();
+									function on_Regional(graphic:Graphic):void
+									{
+										var code:String = graphic.attributes["CODE"];
+										ExternalInterface.call("GetExternal_Regional",code);
+									}
+								}
+								else if(qj != null && sj == null && xj == null)//区域范围
+								{
+									var xcode:int = getCityPreCode(qj);//获得省父级代码
+									la_Regional = new LayerRenderer(map,configXML.cityUrl,"name", onla_Regional, null, "PRECODE = " + xcode,"ReseauType");
+									la_Regional.addRenderer();
+									function onla_Regional(graphic:Graphic):void
+									{
+										var code:String = graphic.attributes["code"];
+										ExternalInterface.call("GetExternal_City",code);
+									}
+								}
+								else if(sj != null && xj == null)//市范围
+								{
+									getCountyPreCode(sj)//获得市父级代码,并显示范围
+									
+								}
+								else if(xj != null)//县范围
+								{
+									la_County = new LayerRenderer(map, configXML.countyUrl,"name", onla_County, null, "name= '" + xj +" '","ReseauType");
+									la_County.addRenderer();
+									function onla_County(graphic:Graphic):void
+									{
+										var code:String = graphic.attributes["code"];
+										ExternalInterface.call("GetExternal_County",code);
+									}
+								}
+								
+							}
+							
+							/**
+							 * 获得省父级代码
+							 */
+							private function getCityPreCode(code:String):int
+							{
+								if(code == "辽东南网格")
+									return 1;
+								else if(code == "辽西网格")
+									return 2;
+								else if(code == "辽中网格")
+									return 3;
+								else if(code == "辽北网格")
+									return 4;
+								else if(code == "大伙房水源地网格")
+									return 5;
+								return 0;
+							}
+							
+							/**
+							 * 获得市父级代码
+							 */
+							private function getCountyPreCode(name:String):void
+							{
+								MapUni.search(configXML.cityUrl, null, "name = '" + name + "'", result, null, ["code"]);
+								
+								function result(featureSet:FeatureSet):void
+								{
+									var countyArray:Array = featureSet.features;
+									if(countyArray != null && countyArray.length > 0)
+									{
+										var graphic:Graphic = countyArray[0];
+										var code = graphic.attributes["code"];
+										code = code.substr(0, 4);
+										la_City = new LayerRenderer(map, configXML.countyUrl,"name", onla_City, null, "code like '" + code +"%'","ReseauType");
+										la_City.addRenderer();  
+										function onla_City(graphic:Graphic):void
+										{
+											var code:String = graphic.attributes["code"];
+											ExternalInterface.call("GetExternal_County",code);
+										}
+									}
+								}
+							}
+							
+							/**
+							 * 获得县污染源
+							 */
+							private function getCountyPollute(name:String):void
+							{
+								MapUni.search(configXML.cityUrl, null, "name = '" + name + "'", result, null, ["code"]);
+								
+								function result(featureSet:FeatureSet):void
+								{
+									var countyArray:Array = featureSet.features;
+									if(countyArray != null && countyArray.length > 0)
+									{
+										var graphic:Graphic = countyArray[0];
+										var code = graphic.attributes["code"];
+										code = code.substr(0, 4);
+										
+										
+										la_Regional = new LayerRenderer(map,configXML.countyUrl,"name", onGetPollute, null, "code like '" + code +"%'","ReseauType");
+										la_Regional.addRenderer();
+										function onGetPollute(graphic:Graphic):void
+										{
+											if(graphic != null)
+											{
+												MapUni.search(configXML.polluteUrl, graphic.geometry, "", onSearchResult);
+											}
+										}
+									}
+								}
+							}
+							
+							
+							/**
+							 * 周边查询
+							 */
+							private function nearby_clickHandler(event:MouseEvent):void
+							{
+								/* 				loadBufferWidget(infoValue.mPoint,infoValue.entName); */
+							}
+							
+							/**
+							 * 功能：区域带有滤镜的图形
+							 */
+							private function getRegionGraphic(regionGeometry:Geometry):Graphic
+							{
+								//内发光滤镜
+								var glowFilter:spark.filters.GlowFilter = new spark.filters.GlowFilter();
+								glowFilter.color = 0xff0000;
+								glowFilter.blurX = 30;
+								glowFilter.blurY = 30;
+								glowFilter.inner = true;
+								glowFilter.knockout = true;
+								glowFilter.alpha = 0.5;
+								
+								var regionSymbol:SimpleFillSymbol = new SimpleFillSymbol("solid", 0, 1);
+								var regionGra:Graphic = new Graphic(regionGeometry, regionSymbol);
+								regionGra.filters = [glowFilter];
+								
+								return regionGra;
+							}
+							
+							/**
+							 * 一企一档按钮
+							 **/
+							protected function linkbutton1_clickHandler(event:MouseEvent):void
+							{
+								var str:String = selectedFacGra[configXML.polluteUrl.@codeField].toString();
+								
+								ExternalInterface.call("GetExternal_EntInfo",str);
+							}
+							
+							
+							protected function linkbutton2_clickHandler(event:MouseEvent):void
+							{
+								var str:String = selectedFacGra[configXML.polluteUrl.@codeField].toString();
+								
+								ExternalInterface.call("GetExternal_EntVideoInfo",str);
+							}
+							
+							public function on1():void
+							{
+								
+							}
+							
+							/**
+							 * 获取图层等级
+							 */
+							private function getLayerLevel(param:String):String
+							{
+								var regLevel:String;
+								if (param.indexOf("9", 2) == 2)
+								{
+									regLevel="一级";
+								}
+								else if (param.indexOf("0", 4) == 4 && param.indexOf("0", 5) == 5)
+								{
+									regLevel="二级";
+								}
+								else if(param.length == 6)
+								{
+									regLevel="三级";
+								}
+								return regLevel;
+							}
+							/**
+							 * 编码查询
+							 */
+							public function codeQuery(param:String):void
+							{
+								var code:String;
+								var layerUrl:String;
+								level=getLayerLevel(param);
+								var whereClause:String;
+								if (level)
+								{
+									switch (level)
+									{
+										case "一级":
+										{
+											layerUrl=configXML.regionalUrl;
+											code=(configXML.regionalUrl.@codeField).toString();
+											break;
+										}
+										case "二级":
+										{
+											layerUrl=configXML.cityUrl;
+											code=(configXML.cityUrl.@codeField).toString();
+											break;
+										}
+										case "三级":
+										{
+											layerUrl=configXML.countyUrl;
+											code=(configXML.countyUrl.@codeField).toString();
+											break;
+										}
+									}
+									whereClause=code + "='" + param + "'";
+								}
+								else
+								{
+									layerUrl = configXML.regionalUrl;
+									whereClause = "1=1";
+								}
+								
+								MapUni.search(layerUrl, null, whereClause, result, null, null, true, fault);
+								/**
+								 * 编码查询结果显示
+								 */
+								function result(featureset:FeatureSet):void
+								{
+									
+									for each (var obj:Object in featureset.features)
+									{
+										var gra:Graphic= obj as Graphic;
+										 
+										var geo:Geometry = gra.geometry;
+										
+										if(gra.attributes.CODE)
+										{
+											var strGetNetCode=gra.attributes.CODE;
+										} 
+										else
+										{
+											var strGetNetCode=gra.attributes.code;
+										}
+									
+										var code1:String="CODE";
+										var code2:String="code";
+										var majorper:String="MAJORPER";
+										var person:String="person";
+										var qSpatial:String = "esriSpatialRelContains";
+										var qWhere:String="";
+										if(level)
+										{
+											switch (level)
+											{
+												case "一级":
+												{
+													regionCode=gra.attributes[(configXML.regionalUrl.@codeField).toString()];
+													
+													if(initLevel == "一级")
+													{
+														if(codeArr1.length<codeNum)
+														{
+															
+															var codeObj:Object = new Object();
+															codeObj.name =  gra.attributes["name"].toString();
+															codeObj.code =  regionCode
+															codeArr1.addItem(codeObj);
+															qylx_QJ.dataProvider=codeArr1;
+															 
+															
+														}
+														
+													}
+													switch(gra.attributes["name"].toString()){
+														case"辽东南网格":
+															qWhere = "PRECODE = 1" ;
+															break;
+														case"辽西网格":
+															qWhere = "PRECODE = 2" ;
+															break;
+														case"辽中网格":
+															qWhere = "PRECODE = 3" ;
+															break;
+														case"辽北网格":
+															qWhere = "PRECODE = 4" ;
+															break;	   
+														case"大伙房水源地网格":
+															qWhere = "PRECODE = 5" ;
+															break;	  
+													}
+													
+													break;
+												}
+												case "二级":
+												{
+													regionCode=gra.attributes[(configXML.cityUrl.@codeField).toString()];
+													
+													if(initLevel == "二级")
+													{
+														if(codeArr2.length<codeNum)
+														{
+															var codeObj:Object = new Object();
+															codeObj.name =  gra.attributes["name"].toString();
+															codeObj.code =  regionCode
+															codeArr2.addItem(codeObj);
+															qylx_SJ.dataProvider=codeArr2;
+															 
+														}
+													}
+												
+													break;
+												}
+												case "三级": //在区县级别时候才显示
+												{
+													regionCode=gra.attributes[(configXML.countyUrl.@codeField).toString()];
+													if(initLevel == "三级")
+													{
+														if(codeArr3.length<codeNum)
+														{
+															
+															var codeObj:Object = new Object();
+															codeObj.name =  gra.attributes["name"].toString();
+															codeObj.code =  regionCode
+															codeArr3.addItem(codeObj);
+															qylx_XJ.dataProvider=codeArr3;
+														}
+													}
+													break;
+												}
+											}
+										}
+									}
+						  } 
+						/**
+						 * 查询失败是触发的事件
+						 */
+						function fault(erro:Error):void
+						{
+							 
+						}
+				 }
+		 
+	  ]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<s:GlowFilter id="glowFilter"
+					  alpha="1"
+					  color="{getStyle('focusColor')}"
+					  inner="true"
+					  strength="2"/>
+		<esri:GeometryService id="geometryService"
+							  fault="geometryService_faultHandler(event)"
+							  />
+		<esri:SimpleFillSymbol id="fillSymbol"
+							   alpha="0.5"
+							   color="0x3FAFDC"
+							   >
+			<esri:SimpleLineSymbol width="1" color="0x000000"/>
+		</esri:SimpleFillSymbol>
+		
+	</fx:Declarations>
+	<viewer:states>
+		<s:State name="searchInput"/>
+		<s:State name="resultsList"/>
+	</viewer:states>
+	<viewer:transitions>
+		<s:Transition autoReverse="true" toState="*">
+			<s:Sequence>
+				<s:Parallel>
+					<s:Resize duration="500" target="{wTemplate}" />
+				</s:Parallel>
+				<s:Parallel>
+					<s:Fade duration="500" target="{searchInput}"  />
+					<s:Fade duration="500" target="{resultsList}"  />
+				</s:Parallel>
+			</s:Sequence>
+		</s:Transition>
+	</viewer:transitions>
+	<viewer:WidgetTemplate id="wTemplate"
+						   width="270" height="230"
+						   minWidth="200" minHeight="110" height.resultsList="320"  width.resultsList="335"
+						   closed="widgetClosedHandler(event)"
+						   open="widgetOpenedHandler(event)"
+						   >
+		
+		<s:VGroup id="searchInput"
+				  width="100%" height="100%"
+				  horizontalAlign="center"
+				  verticalAlign="top" 
+				  paddingTop="10"
+				  gap="4"
+				  visible.resultsList="false"
+				  visible.searchInput="true"
+				  height.searchInput="269">
+			<s:HGroup id="XZGroup"  width="100%" gap="10">
+				<s:Label height="22" verticalAlign="middle" text="查询所有网格："/>
+				<mx:Image name="Reseau_Regional" width="20" height="20"
+						  buttonMode="true"
+						  click="activateReseau(event)"
+						  rollOut="drawIcon_rollOutHandler(event)"
+						  rollOver="drawIcon_rollOverHandler(event)"
+						  source="assets/yutuImages/proIcon/省.png"
+						  toolTip="省级网格"
+						  useHandCursor="true"/>
+				<mx:Image name="Reseau_City" width="20" height="20"
+						  buttonMode="true"
+						  click="activateReseau(event)"
+						  rollOut="drawIcon_rollOutHandler(event)"
+						  rollOver="drawIcon_rollOverHandler(event)"
+						  source="assets/yutuImages/proIcon/市.png"
+						  toolTip="市级网格"
+						  useHandCursor="true"/>
+				<mx:Image name="Reseau_County" width="20" height="20"
+						  buttonMode="true"
+						  click="activateReseau(event)"
+						  rollOut="drawIcon_rollOutHandler(event)"
+						  rollOver="drawIcon_rollOverHandler(event)"
+						  source="assets/yutuImages/proIcon/县.png"
+						  toolTip="县级网格"
+						  useHandCursor="true"/>
+			</s:HGroup>
+			
+			<s:HGroup id="QJGroup"  width="100%" gap="10" paddingTop="5">
+				<s:Label height="22" verticalAlign="middle" text="选择省级："/>
+				<s:DropDownList id="qylx_QJ"  width="140" 
+								labelField="name" prompt="请选择…"
+								useHandCursor="true" buttonMode="true"
+								selectedIndex="0" change="cityListSearch()"
+								>
+					<s:ArrayList>
+						<fx:Object name="全部" code="-1"/>
+						<fx:Object name="辽东南网格" code="1"/>
+						<fx:Object name="辽西网格" code="2"/>
+						<fx:Object name="辽中网格" code="3"/>
+						<fx:Object name="辽北网格" code="4"/>
+						<fx:Object name="大伙房水源地网格" code="5"/>
+					</s:ArrayList>
+				</s:DropDownList>
+				<!--				<mx:Image name="Reseau_Regional"
+				width="20" height="20"
+				buttonMode="true"
+				click="activateReseau(event)"
+				rollOut="drawIcon_rollOutHandler(event)"
+				rollOver="drawIcon_rollOverHandler(event)"
+				source="assets/yutuImages/proIcon/mapSelect.png"
+				toolTip="省级"
+				useHandCursor="true"/>-->
+			</s:HGroup>
+			
+			<s:HGroup id="SJGroup"  width="100%" gap="10">
+				<s:Label height="22" verticalAlign="middle" text="选择市级："/>
+				<s:DropDownList id="qylx_SJ"  width="140" 
+								labelField="name" prompt="请选择…"
+								useHandCursor="true" buttonMode="true"
+								selectedIndex="0" change="countyListSearch()"
+								>
+				</s:DropDownList>
+				<!--				<mx:Image name="Reseau_City"
+				width="20" height="20"
+				buttonMode="true"
+				click="activateReseau(event)"
+				rollOut="drawIcon_rollOutHandler(event)"
+				rollOver="drawIcon_rollOverHandler(event)"
+				source="assets/yutuImages/proIcon/mapSelect.png"
+				toolTip="市级"
+				useHandCursor="true"/>-->
+			</s:HGroup>
+			
+			<s:HGroup id="XJGroup" width="100%" gap="10">
+				<s:Label height="22" verticalAlign="middle" text="选择县级："/>
+				<s:DropDownList id="qylx_XJ"  width="140" 
+								labelField="name" prompt="请选择…"
+								useHandCursor="true" buttonMode="true"
+								selectedIndex="0"
+								>
+				</s:DropDownList>
+				<!--				<mx:Image name="Reseau_County"
+				width="20" height="20"
+				buttonMode="true"
+				click="activateReseau(event)"
+				rollOut="drawIcon_rollOutHandler(event)"
+				rollOver="drawIcon_rollOverHandler(event)"
+				source="assets/yutuImages/proIcon/mapSelect.png"
+				toolTip="县级"
+				useHandCursor="true"/>-->
+			</s:HGroup>
+			
+			<s:HGroup width="100%" top="5" gap="10" paddingLeft="70">
+				<s:Button label="查询" width="69"  click="query()"  />
+			</s:HGroup>
+			
+			<s:HGroup id="WRGroup" width="100%" gap="10" paddingTop="5" height="40"  horizontalCenter="Bottom" visible="false">
+				<s:Label height="22" verticalAlign="middle" text="查看所管辖区域内的污染源："/>
+				<mx:Image name="Reseau_GetPollute" width="20" height="20"
+						  buttonMode="true"
+						  click="activateReseau(event)"
+						  rollOut="drawIcon_rollOutHandler(event)"
+						  rollOver="drawIcon_rollOverHandler(event)"
+						  source="assets/yutuImages/proIcon/mapSelect.png"
+						  toolTip="污染源"
+						  useHandCursor="true"/>
+			</s:HGroup>
+		</s:VGroup>
+		<!-- 结果面板 -->
+		<s:VGroup id="resultsList" width="100%" height="100%" visible.searchInput="false" visible.resultsList="true">
+			<s:List id="resuleList" width="295" height="230" change="resuleList_changeHandler(event)"/>
+			<pageNavigation:UC_PageNavigation id="pageNavi" width="295" pageChange="pageNavi_changeHandler(event)"/>
+		</s:VGroup>
+		<!-- 气泡面板 -->
+		<s:VGroup id="info" visible="false" width="230">
+			<s:Label id="info_name" fontFamily="宋体" fontSize="13" fontWeight="bold" color="black"/>
+			<mx:UIComponent id="info_line"/>
+			<mx:Spacer height="3"/>
+			<s:HGroup>
+				<s:Label width="70" fontSize="12" fontWeight="bold" text="法人代表：" textAlign="right"/>
+				<s:Label id="info_frdb" width="150" fontSize="12" fontWeight="bold"/>
+			</s:HGroup>
+			<s:HGroup>
+				<s:Label width="70" fontSize="12" fontWeight="bold" text="联系人：" textAlign="right"/>
+				<s:Label id="info_lxr" width="150" fontSize="12" fontWeight="bold"/>
+			</s:HGroup>
+			<s:HGroup>
+				<s:Label width="70" fontSize="12" fontWeight="bold" text="企业地址：" textAlign="right"/>
+				<s:Label id="info_qydi" width="150" fontSize="12" fontWeight="bold"/>
+			</s:HGroup>
+			<mx:UIComponent id="control_line"/>
+			<mx:Spacer height="3"/>
+			<s:HGroup>
+				<mx:LinkButton label="一企一档" color="0x000000" width="80" click="linkbutton1_clickHandler(event)"/>
+				<mx:Spacer width="50"/>
+				<mx:LinkButton label="在线监测" color="0x000000" width="80" click="linkbutton2_clickHandler(event)"/>
+			</s:HGroup>
+		</s:VGroup>   
+		
+		
+	</viewer:WidgetTemplate>
+	
+	<mx:Canvas id="canbox" visible="false">
+		<mx:Image source="assets/yutuImages/proIcon/提示.png" width.searchInput="274" height.searchInput="39"/>
+	</mx:Canvas>
+</viewer:BaseWidget>

@@ -1,0 +1,26 @@
+<?xml version="1.0" ?>
+<configuration>
+
+    <about>
+       <label>关于</label>
+       <visible>true</visible>
+       <width>275</width>
+       <height>100</height>
+       <content>
+        <![CDATA[<p align='center'><img src='assets/images/globe.png' width='140' height='140' /></p>
+        <font size="16"><b>欢迎使用公共地理信息平台.</b></font>
+        <br><p>本系统由中科宇图天下科技有限公司开发.</p>
+        <br>更多信息如下:
+        <textformat indent="25"><p><br><font color='#FFFF00'>地址：北京市朝阳区安翔北里甲11号北京创业大厦</font></a>
+        <br><font color='#FFFF00'>电话：010-51286880</font></a></p></textformat>
+        ]]>
+        </content>
+        <btnlabel>确定</btnlabel>
+    </about>
+    
+    <window>
+    	<fullScreen icon="assets/yutuImages/widgetIcon/2_fullScreen.png" toolTip="全屏"/>
+    	<normalScreen icon="assets/yutuImages/widgetIcon/2-normalScreen.png" toolTip="退出全屏"/>
+    </window>
+    
+</configuration>

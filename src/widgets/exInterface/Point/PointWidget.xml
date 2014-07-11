@@ -1,0 +1,66 @@
+<?xml version="1.0" ?>
+<configuration>
+	<externalInterface>
+	
+		<!--  
+		
+			名称：在地图上添加自定义点
+	    	
+	    	接口：MapPoint
+	    	
+	    	参数：JsonData:Array (json格式的数组）
+	    	
+	    	数据结构：	[
+							{
+								locate: {X:_,  Y:_ },
+								picture: {enable:_,  url:_,  width:_,  height:_,  xoffset:_,   yoffset:_,   angle:_ },
+								textSymbol:{enable:_, text:_, borderColor:_, backgroundColor:_, angle:_, xoffset:_, yoffset:_, textFormate:{size:_, color:_, bold:_, underline:_} }
+								popUpWindow:{enable:_,  title:_,  content:_, autoShow:_, link:[{label:_, callback:_, parameter:_ },{...}...],
+								iframeWindow:{ enable:_,  url:_,  width:_,  height:_, autoShow:_},
+								clickCallback:{ enable:_,  funcName:_,  parameter:[_,_...]},
+								toolTip:{enable：_,  text:_}
+							},
+							{
+								…
+							},
+							…
+						]
+
+	    	
+	    	数据说明：	参数采用 json 数据来传递。整个数据整体是一个数组。里面包含若干对象，每一对象代表一个点信息。 
+
+							locate：点的坐标。x、y分别为点在地图上的x轴y轴坐标。
+							picture：点的图片符号信息。里面的参数从左至右依次为是否要使用图片符号，图片的相对路径，图片在地图上显示的宽度、高度、x轴偏移值、y轴偏移值和图片的旋转角度。
+							popUpWindow：点击点时弹出的气泡信息框参数。enable 为决定是否要使用此功能，title为标题；content为显示内容，如果内容需要换行可以使用换行符； autoShow 为是否要在加载时自动显示； link1、link2、link3为要在气泡框下方显示的超连接，name为超链接名称，url为超链接地址。
+							iframeWindow：弹出的气泡框内嵌入外部页面。enable 为决定是否要使用此功能，url为页面地址，width、height 分别为页面的宽度和高度； autoShow 为是否要在加载时自动显示。
+							clickCallback：点击图标时向外派发事件，enable 为决定是否要使用此功能，funcName为要调用的外部函数名称。parameter为掉用外部函数时要传的参数，程序在调用外部函数时会传两个参数，一个是将该点对象传入时的所有参数以json格式原样传回，另一个是parameter传的参数。 
+							toolTip:鼠标移动到点上时的提示信息。enable 为决定是否要使用此功能，text为提示信息内容
+	    				
+	    	示例：  JsonData = [{"popUpWindow":{"enable":true,"link3":null,"link1":{"name":"百度","url":"http://www.baidu.com"},"link2":null,"autoShow":true,"content":"a:sdf\nb:asdf","title":"污染源"},"clickCallback":{"enable":false,"funcName":"","parameter":null},"picture":{"enable":true,"yoffset":0,"xoffset":0,"angle":0,"width":20,"height":20,"url":"assets/yutuImages/externalInterfaceIcon/污染源企业.png"},"iframeWindow":{"enable":false,"url":"","width":0,"height":0},"locate":{"Y":31.837785747495523,"X":119.73104226928545}},{"popUpWindow":{"enable":true,"content":"阿萨德飞：阿萨德飞\nasdf:阿萨德飞 ","title":"电厂"},"clickCallback":{"enable":false},"picture":{"enable":true,"yoffset":0,"xoffset":0,"angle":0,"width":20,"height":20,"url":"assets/yutuImages/mapIcon/电厂40.png"},"iframeWindow":{"enable":false},"locate":{"Y":32.06304942802223,"X":120.12905084444984}},{"popUpWindow":{"enable":false,"title":"机动车"},"clickCallback":{"enable":false,"funcName":"asdf","parameter":["asd",2]},"picture":{"enable":true,"url":"assets/yutuImages/mapIcon/机动车40.png","width":20,"height":20},"iframeWindow":{"enable":true,"url":"http://www.baidu.com","width":200,"height":100},"locate":{"Y":32.606872671205885,"X":120.27187311033644}}];
+					MapPoint(JsonData)
+	    	
+		 	备注：	iframeWindow 参数和 popUpWindow 参数实现同一个功能，当了个同时都使用时，系统会优先使用 iframeWindow。
+		 			参数的顺序没有先后之分，程序将通过对象的属性名称来取值。
+		 	
+		-->
+		<exAddPointList>MapPoint</exAddPointList>
+		
+		<exAddPointListStr>MapPointStr</exAddPointListStr>
+		
+		
+		<!--
+		
+			名称：清除地图上添加的自定义点
+	    	
+	    	接口：ClearMapPoint
+	    	
+	    	参数：无
+	    	
+	    	示例：ClearMapPoint()
+	    	
+	    -->
+		<exClearPoint>ClearMapPoint</exClearPoint>
+		
+	</externalInterface>
+	
+</configuration>

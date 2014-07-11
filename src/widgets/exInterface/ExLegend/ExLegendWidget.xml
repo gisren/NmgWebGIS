@@ -1,0 +1,49 @@
+<?xml version="1.0" ?>
+<configuration>
+	<externalInterface>
+	
+		<!--  
+		
+			名称：图例编辑
+	    	
+	    	接口：MapLegend
+	    	
+	    	参数：JsonData:String  数据集(json格式数组)
+	    	
+	    	数据结构：	[
+	    					{
+					    		addLegend:{enable:_, legendName:_, legendItem:[{symbol:_, label:_}, {...}...]},
+					    		callLayerLegend:{enable:_, legendName:_, layerName},
+					    		deleteLegend:{enable:_, legendName:_},
+					    		clearLegend:{enable:_}
+							},
+							{
+								...
+							},
+							...
+	    				]
+	    	
+	    	数据说明：	整个json数据为一个数组，数组中包含若干对象，每个对象为一组对图例的操作，对象中包含下列属性：
+	    	
+	    				addLegend：添加一组图例。enable为是否要使用这一属性，默认为false；legendName这组添加图例的名称；legendItem这组图例的具体内容：symbol：图例符号，label：图例说明。
+		    			
+		    			callLayerLegend：调取某一图层的图例。enable为是否要使用这一属性，默认为false；legendName：这组调取来的图例的名称；layerName：要调取图例的图层名称。
+		    			
+		    			deleteLegend：删除一组图例。enable为是否要使用这一属性，默认为false；legendName：要删除的这组图例的名称。
+		    			
+		    			clearLegend:清除所有图例。enable为是否要使用这一属性，默认为false。
+		    			
+	    				
+	    	示例：  JsonData = "[{"addLegend":{"legendName":"测试图例组1","enable":true,"legendItem":[{"symbol":16711714,"label":"测试"},{"symbol":"assets/yutuImages/externalInterfaceIcon/污染源企业.png","label":"污染源"}]}},{"callLayerLegend":{"legendName":"测试图例组2","enable":true,"layerName":"js_市界"}}]";
+					MapLegend(JsonData)
+	    	
+		 	备注：	addLegend、callLayerLegend、eleteLegend 和 clearLegend 这四个属性分别为四个独立的方法，需要哪个属性的操作时再传入那个属性。
+		 			如果传入了多个，则系统都会执行。
+		-->
+		<exLegendEidt>MapLegend</exLegendEidt>
+		
+		
+		
+	</externalInterface>
+	
+</configuration>

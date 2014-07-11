@@ -1,0 +1,386 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			   xmlns:s="library://ns.adobe.com/flex/spark" 
+			   xmlns:mx="library://ns.adobe.com/flex/mx" 
+			   xmlns:Charts="com.mapUni.UtilComponent.Charts.*" 
+			   xmlns:Components="widgets.exInterface.StatisticalAnalysis.Components.*"
+			   creationComplete="init()" 
+			   xmlns:Control="widgets.exInterface.StatisticalAnalysis.Control.*" 
+			   >
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			import com.mapUni.FunctionClass.MapChart.UF_MapChart;
+			import com.mapUni.UtilComponent.Charts.UC_BarChart;
+			import com.mapUni.UtilComponent.Charts.UC_ColumnChart;
+			import com.mapUni.UtilComponent.Charts.UC_LineChart;
+			import com.mapUni.UtilComponent.Charts.UC_PieChart;
+			import com.mapUni.UtilComponent.Charts.UE_ChartEvent;
+			
+			import mx.charts.HitData;
+			import mx.charts.series.ColumnSeries;
+			import mx.collections.ArrayCollection;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.core.UIComponent;
+			import mx.effects.Parallel;
+			import mx.events.EffectEvent;
+			import mx.events.ListEvent;
+			import mx.managers.PopUpManager;
+			import mx.olap.aggregators.CountAggregator;
+			
+			import spark.components.supportClasses.ItemRenderer;
+			import spark.effects.Fade;
+			import spark.effects.Resize;
+			
+			import widgets.exInterface.Chart.UF_AddMapChart;
+			import widgets.exInterface.StatisticalAnalysis.Control.StatChartParam;
+			import widgets.exInterface.StatisticalAnalysis.Control.StatEvent;
+			
+			
+			private function init():void
+			{
+				ViewerContainer.addEventListener(StatEvent.STAT_DATA_WINDOW_CHART, onChartDataSend);
+				
+				ViewerContainer.addEventListener(StatEvent.STAT_WINDOW_CHART_VISIBLE, setWindowchartVisible);
+			}
+			
+			
+			private var statWindowChartParam:StatChartParam;
+			
+			private var chartVisible:Boolean = false;
+			
+			
+			private function onChartDataSend(event:StatEvent):void
+			{
+				this.visible = true;
+				chartVisible  = true;
+				
+				statWindowChartParam = event.data as StatChartParam;
+				
+				if(statWindowChartParam.isLevelLayer)
+				{
+					charTypeRadio.visible = true;
+				}
+				else
+				{
+					charTypeRadio.visible = false;
+				}
+				
+				//标题
+				chartContent.title = statWindowChartParam.statTitle;
+				setlayerRadioSelect(statWindowChartParam.regionLayer);
+				
+				//图表
+				var chartType:String = statWindowChartParam.chartType;
+				setChart(chartType);
+				
+				//数据列表 
+				setDataGridParam();
+			}
+			
+			
+			/**
+			 * 监听：图表窗口是否可见参数的派发 
+			*/
+			private function setWindowchartVisible(event:Event):void
+			{
+				var visible:Boolean = event["data"] as Boolean;
+				
+				if(visible && chartVisible)
+				{
+					this.visible = true;
+				}
+				else
+				{
+					this.visible = false;
+				}
+			}
+			
+			
+			/**
+			 * 功能: 设置单选按钮的选中切换 
+			*/
+			private function setlayerRadioSelect(regionLayer:String):void
+			{
+				if(regionLayer == "provinceLayer")
+				{
+					provinceRadio.selected = true;
+				}
+				else if(regionLayer == "cityLayer")
+				{
+					cityRadio.selected = true;
+				}
+				else if(regionLayer == "countyLayer")
+				{
+					countyRadio.selected = true;
+				}
+			}
+			
+			
+			/**
+			 * 设置图表参数
+			 */
+			private function setChart(chartType:String):void
+			{
+				var chartComponent:*;
+				if(chartType == "columnChart")
+				{
+					chartComponent = new UC_ColumnChart();
+					
+					//columnRadio.selected = true;
+				}
+				else if(chartType == "pieChart")
+				{
+					chartComponent = new UC_PieChart();
+					
+					//pieRadio.selected = true;
+				}
+				else if(chartType == "lineChart")
+				{
+					chartComponent = new UC_LineChart();
+					
+					//lineRadio.selected = true;
+				}
+				else if(chartType == "barChart")
+				{
+					chartComponent = new UC_BarChart();
+				}
+				
+				chartComponent.percentHeight = 100;
+				chartComponent.percentWidth = 100;
+				
+				chartComponent.V_dataProvider = new ArrayCollection(statWindowChartParam.dataProvider);
+				chartComponent.V_nameField = statWindowChartParam.nameField;
+				chartComponent.V_valueFields = statWindowChartParam.valueFields;
+				chartComponent.V_fillColors = statWindowChartParam.colors;
+				chartComponent.V_nameHashtable = statWindowChartParam.codeNameHashtable;
+				
+				if(statWindowChartParam.isLevelLayer)
+				{
+					chartComponent.addEventListener(UE_ChartEvent.CHART_ITEM_CLICK, onChartItemClick);
+				}
+				
+				chartGroup.removeAllElements();
+				chartGroup.addElement(chartComponent);
+			} 
+			
+			
+			private function chartLayerSelect(layerStr:String):void
+			{
+				var dataObj:Object = new Object();
+				dataObj.id = statWindowChartParam.statId;
+				dataObj.label = statWindowChartParam.statTitle;
+				dataObj.regionLayer = statWindowChartParam.regionLayer;
+				
+				if(layerStr == "province")
+				{
+					ViewerContainer.dispatchEvent(new StatEvent(StatEvent.STAT_PARAM_PROVIDER_SEND, dataObj));
+				}
+				else if(layerStr == "city")
+				{
+					ViewerContainer.dispatchEvent(new StatEvent(StatEvent.STAT_PARAM_CITY_SEND, dataObj));
+				}
+			}
+			
+			
+			private function onChartItemClick(event:UE_ChartEvent):void
+			{
+				var hitData:HitData = event.data as HitData;
+				
+				var dataObj:Object = hitData.chartItem.item;
+				
+				updataChart(dataObj);
+			}
+			
+			
+			/**
+			 * 设置数据列表参数 
+			*/
+			private function setDataGridParam():void
+			{
+				gridGroup.dataProvider = statWindowChartParam.dataProvider;
+					
+				var columnArray:Array = new Array();	
+				
+				var dgNameColumn:DataGridColumn = new DataGridColumn();
+				dgNameColumn.dataField = statWindowChartParam.nameField;
+				dgNameColumn.headerText = "名称";
+					
+				columnArray.push(dgNameColumn);
+				
+				for(var i:int=0; i<statWindowChartParam.valueFields.length; i++)
+				{
+					var dgColumn:DataGridColumn = new DataGridColumn();
+					dgColumn.dataField = statWindowChartParam.valueFields[i];
+					dgColumn.headerText = statWindowChartParam.valueNames[i];
+					
+					columnArray.push(dgColumn);
+				}
+				
+				gridGroup.columns = columnArray;
+			}
+			
+			
+			private function onStatChartClose(event:Event=null):void
+			{
+				this.visible = false;
+				chartVisible = false;
+			}
+			
+			
+			private function oncheckBoxClick():void
+			{
+				if(chartCheckBox.selected && gridCheckBox.selected)
+				{
+					this.currentState = "all";
+				}
+				else if(chartCheckBox.selected && !gridCheckBox.selected)
+				{
+					this.currentState = "chartState";
+				}
+				else if(!chartCheckBox.selected && gridCheckBox.selected)
+				{
+					this.currentState = "gridState";
+				}
+				else if(!chartCheckBox.selected && !gridCheckBox.selected)
+				{
+					this.currentState = "normal";
+				}
+			}
+			
+
+			protected function gridGroup_itemClickHandler(event:ListEvent):void
+			{
+				var itemObj:Object = event.itemRenderer.data;
+				
+				if(statWindowChartParam.isLevelLayer)
+				{
+					updataChart(itemObj);
+				}
+			}
+			
+			
+			private function updataChart(itemObj:Object):void
+			{
+				var dataObj:Object = new Object();
+				dataObj.id = statWindowChartParam.statId;
+				dataObj.label = statWindowChartParam.statTitle;
+				dataObj.regionLayer = statWindowChartParam.regionLayer;
+				dataObj.regionCode = itemObj[statWindowChartParam.regionIdField];
+				
+				if(dataObj.regionLayer == "provinceLayer")
+				{
+					cityRadio.selected = true;
+					
+					ViewerContainer.dispatchEvent(new StatEvent(StatEvent.STAT_PARAM_CITY_SEND, dataObj));
+				}
+				else if(dataObj.regionLayer == "cityLayer")
+				{
+					countyRadio.selected = true;
+					
+					ViewerContainer.dispatchEvent(new StatEvent(StatEvent.STAT_PARAM_COUNTY_SEND, dataObj));
+				}
+			}
+
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<s:State name="all"/>
+		<s:State name="chartState"/>
+		<s:State name="gridState"/>
+		<s:State name="normal"/>
+	</s:states>
+	
+	<s:transitions>
+		<s:Transition>
+			<s:Parallel duration="800">
+				<s:Resize targets="{[chartGroup, gridGroup]}" />
+				<s:Fade targets="{[chartGroup, gridGroup, charTypeRadio]}" />
+			</s:Parallel>
+		</s:Transition>
+	</s:transitions>
+	
+	<Control:StatChartContent id="chartContent" 
+								 x="8" y="370" 
+								 minWidth="380" minHeight="450"
+								 width="400" height="484" 
+								 closed="onStatChartClose()"
+								 title="图表统计分析"
+								 >
+		<Control:layout>
+			<s:VerticalLayout paddingTop="10" />
+		</Control:layout>
+		
+		<s:HGroup width="100%">
+			<s:HGroup width="50%" horizontalAlign="left" >
+				<s:CheckBox id="chartCheckBox" label="统计图表" selected="true" change="oncheckBoxClick()"  />
+				<s:CheckBox id="gridCheckBox" label="数据列表" selected="true" change="oncheckBoxClick()" />
+			</s:HGroup>
+			<s:HGroup id="charTypeRadio" gap="20"
+					  width="50%" horizontalAlign="right" 
+					  visible="false" 
+					  > <!--visible.gridState="false" visible.normal="false"-->
+				<s:RadioButton id="provinceRadio" label="省" change="chartLayerSelect('province')"/>
+				<s:RadioButton id="cityRadio" label="市" selected="true" change="chartLayerSelect('city')"/>
+				<s:RadioButton id="countyRadio" label="区县" mouseEnabled="false" />
+				<!--<s:RadioButton id="columnRadio" label="柱状图" change="setChart('columnChart')"/>
+				<s:RadioButton id="pieRadio" label="饼状图" change="setChart('pieChart')"/>
+				<s:RadioButton id="lineRadio" label="折线图" change="setChart('lineChart')"/>-->
+			</s:HGroup>
+		</s:HGroup>
+		
+		<s:HGroup id="chartGroup" width="100%"
+				  height.all="60%" height.chartState="100%" height.gridState="0" height.normal="0"
+				  visible="true" visible.gridState="false" visible.normal="false"
+				  verticalAlign="bottom"  
+				  >
+			<!--<Charts:UC_BarChart width="100%" height="100%" 
+								   V_dataProvider="{medalsAC}" 
+								   V_nameField="Country" 
+								   V_valueFields="{['Gold', 'Silver', 'Bronze']}" 
+								   V_seriesColors="{['0xff0000','0x00ff00','0x0000ff']}"
+								   /> -->
+			
+			<!--<Charts:UC_LineChart width="100%" height="100%" 
+								 V_dataProvider="{medalsAC}" 
+								 V_valueFields="{['Gold', 'Silver', 'Bronze']}" 
+								 V_nameField="Country"
+								 V_fillColors="{['0xff0000','0x00ff00','0x0000ff']}"
+								 />-->
+			
+			<!--<Charts:UC_PieChart width="100%" height="100%" 
+								V_dataProvider="{medalsAC}" 
+								V_valueFields="{['Gold', 'Silver', 'Bronze']}" 
+								V_nameField="Country"
+								V_labelPosition="{UC_PieChart.LABELPOSITION_INSIDE}"
+								V_fillColors="{['0xff0000','0x00ff00','0x0000ff']}"
+								/>-->
+			
+			<!--<Charts:UC_ColumnChart width="100%" height="100%" 
+								   V_dataProvider="{medalsAC}" 
+								   V_nameField="Country" 
+								   V_valueFields="{['Gold', 'Silver', 'Bronze']}" 
+								   V_fillColors="{['0xff0000','0x00ff00','0x0000ff']}"
+								   />-->
+		</s:HGroup>
+		
+		<mx:DataGrid id="gridGroup" width="100%"
+					 height.all="40%" height.chartState="0" height.gridState="100%" height.normal="0"
+					 visible="true" visible.chartState="false" visible.normal="false"
+					 itemClick="gridGroup_itemClickHandler(event)"
+					 > 
+			<!--<mx:columns>
+				<mx:DataGridColumn id="nameDgColumn" headerText="名称" />
+				<mx:DataGridColumn id="valueDgColumn" headerText="数值" />
+			</mx:columns>-->
+		</mx:DataGrid>
+		
+	</Control:StatChartContent>
+	
+	
+</s:Group>
+
+

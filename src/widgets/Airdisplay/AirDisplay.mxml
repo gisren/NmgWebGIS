@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				   xmlns:s="library://ns.adobe.com/flex/spark" 
+				   xmlns:mx="library://ns.adobe.com/flex/mx" 
+				   xmlns:viewer="com.esri.viewer.*" layout="absolute" 
+				   widgetConfigLoaded="basewidget1_widgetConfigLoadedHandler(event)">
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.geometry.Geometry;
+			import com.esri.ags.layers.ArcGISDynamicMapServiceLayer;
+			import com.esri.ags.tasks.GeometryService;
+			import com.esri.ags.tasks.QueryTask;
+			import com.esri.ags.tasks.supportClasses.Query;
+			
+			import mx.controls.Alert;
+			import mx.rpc.AsyncResponder;			
+						
+			//初始化
+			private var _mapurl:String=null;
+	
+			protected function basewidget1_widgetConfigLoadedHandler(event:Event):void
+			{
+
+				if(configXML)
+				{
+					_mapurl=configXML.mapurl;					
+					var layer:ArcGISDynamicMapServiceLayer =new ArcGISDynamicMapServiceLayer();
+					layer.url=_mapurl;
+					layer.id="airlayer";				
+					this.map.addLayer(layer);
+					
+					var geoservice:GeometryService=new GeometryService();
+					geoservice.url=configXML.geometryurl;
+				}
+				
+			}
+			//得到管道要素
+			private function getFeature(geo:Geometry):void
+			{
+				var query:Query=new Query();
+				query.outFields=["*"];
+				query.returnGeometry=true;
+				query.outSpatialReference=this.map.spatialReference;
+				query.geometry=geo;
+				
+				var queryTask:QueryTask=new QueryTask();
+				queryTask.url=this._mapurl+"/1";
+				queryTask.execute(query,new AsyncResponder(onSuccess,onFault));
+				
+			}
+			private function onSuccess():void
+			{
+			}
+			private function onFault():void
+			{
+			}
+			protected function widgettemplate1_openHandler(event:Event):void
+			{
+				if(this.map.getLayer("airlayer"))
+				{
+					this.map.getLayer("airlayer").visible=true;
+				}
+								
+			}			
+			protected function widgettemplate1_closedHandler(event:Event):void
+			{
+				
+				if(this.map.getLayer("airlayer"))
+				{
+					this.map.getLayer("airlayer").visible=false;
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<viewer:WidgetTemplate visible="true" open="widgettemplate1_openHandler(event)" closed="widgettemplate1_closedHandler(event)">
+		
+	</viewer:WidgetTemplate>
+</viewer:BaseWidget>

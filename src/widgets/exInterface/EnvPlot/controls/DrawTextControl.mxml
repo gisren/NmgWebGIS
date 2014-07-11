@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 initialize="init()" 
+		 xmlns:controls="widgets.exInterface.EnvPlot.controls.*"
+		 >
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.Map;
+			import com.esri.ags.events.DrawEvent;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.symbols.PictureFillSymbol;
+			import com.esri.ags.symbols.PictureMarkerSymbol;
+			import com.esri.ags.symbols.Symbol;
+			import com.esri.ags.symbols.TextSymbol;
+			import com.esri.ags.tools.DrawTool;
+			import com.esri.ags.tools.EditTool;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			
+			import flash.utils.flash_proxy;
+			
+			import org.osmf.layout.AbsoluteLayoutFacet;
+			
+			import widgets.exInterface.EnvPlot.PlanUtil;
+			import widgets.exInterface.EnvPlot.PlotEvent;
+			
+			
+			private var map:Map = new Map();
+			
+			private var drawTool:DrawTool = new DrawTool();
+			private var editTool:EditTool = new EditTool();
+			
+			private var drawTextLayer:GraphicsLayer = new GraphicsLayer();
+			private var activatePointSymbol:Symbol = new Symbol();
+			
+			private var currEditPoint:Graphic = null;
+			
+			private static const DEFAULT_TEXT_SYMBOL:TextSymbol = new TextSymbol();
+			
+			
+			
+			/**
+			 * 初始化 
+			*/
+			private function init():void
+			{
+				ViewerContainer.addEventListener(PlotEvent.PLOT_MAP_LOADED, onMapLoad);
+				ViewerContainer.addEventListener(PlotEvent.TEXT_SYMBOL_CHANGE, onSymbolChange);
+				
+				ViewerContainer.addEventListener(PlotEvent.CLEAR_ALL_PLOT, ClearLayer);
+				ViewerContainer.addEventListener(PlotEvent.CLEAR_SELECT_TEXT, ClearText);
+			}
+			
+			
+			/**
+			 * 监听地图加载 
+			*/
+			private function onMapLoad(event:PlotEvent):void
+			{
+				map = event.data as Map;
+				
+				map.addLayer(drawTextLayer);
+				
+				map.addEventListener(MouseEvent.CLICK, onMapClick);
+				
+				editTool.map = map;
+				drawTool.map = map;
+				drawTool.addEventListener(DrawEvent.DRAW_END, onDrawEnd);
+			}
+			
+			
+			/**
+			 * 清空图层 
+			*/
+			private function ClearLayer(event:PlotEvent):void
+			{
+				drawTool.deactivate();
+				editTool.deactivate();
+				drawTextLayer.clear();
+				currEditPoint = null;
+			}
+			
+			/**
+			 * 清除当前选中标绘 
+			*/
+			private function ClearText(event:PlotEvent):void
+			{
+				editTool.deactivate();
+				drawTextLayer.remove(currEditPoint);
+				currEditPoint = null;
+			}
+			
+			
+			/**
+			 * 监听地图点击 
+			*/
+			private function onMapClick(event:MouseEvent):void
+			{
+				event.currentTarget
+//				editTool.deactivate();
+//				currEditPoint = null;
+			}
+			
+			
+			/**
+			 * 监听符号改变 
+			*/
+			private function onSymbolChange(event:PlotEvent):void
+			{
+				var symbolData:Object = event.data;
+				
+				var textFormat:TextFormat = new TextFormat();
+				textFormat.bold = symbolData.bold;
+				textFormat.italic = symbolData.italic;
+				textFormat.underline = symbolData.underline;
+				textFormat.font = symbolData.font;
+				textFormat.color = symbolData.color;
+				textFormat.size = symbolData.Size;
+				DEFAULT_TEXT_SYMBOL.textFormat = textFormat;
+				DEFAULT_TEXT_SYMBOL.background = symbolData.useBack;
+				DEFAULT_TEXT_SYMBOL.backgroundColor = symbolData.colorBG;
+				DEFAULT_TEXT_SYMBOL.alpha = symbolData.alphaBG;
+				DEFAULT_TEXT_SYMBOL.border = symbolData.useBorder;
+				DEFAULT_TEXT_SYMBOL.borderColor = symbolData.colorBorder;
+				
+				
+//				if(currEditPoint)
+//				{
+//					currEditPoint.symbol = getCurrentTextSymbol();
+//				}
+				
+			}
+			
+			
+			/**
+			 * 绘制图标
+			*/
+			private function activateDrawTool(event:MouseEvent):void
+			{
+				drawTool.deactivate();
+				drawTool.activate(DrawTool.MAPPOINT, true);
+			}
+			
+			
+			/**
+			 * 监听绘制完毕 
+			*/
+			private function onDrawEnd(event:DrawEvent):void
+			{
+				drawTool.deactivate();
+				
+				var graphic:Graphic = event.graphic;
+				graphic.symbol = getCurrentTextSymbol();
+				graphic.addEventListener(MouseEvent.CLICK, onTextClick);
+				
+				drawTextLayer.add(graphic);
+				
+				editTool.activate(EditTool.MOVE|EditTool.EDIT_VERTICES,[graphic]);
+				
+				ViewerContainer.dispatchEvent(new PlotEvent(PlotEvent.TEXT_SELECTED, graphic));
+				
+				currEditPoint = graphic;
+			}
+			
+			
+			/**
+			 * 获取当前符号设置
+			*/
+			private function getCurrentTextSymbol():Symbol
+			{
+				var textSymbol:TextSymbol = new TextSymbol();
+				
+				textSymbol.text = DEFAULT_TEXT_SYMBOL.text;
+				textSymbol.alpha = DEFAULT_TEXT_SYMBOL.alpha;
+				textSymbol.background = DEFAULT_TEXT_SYMBOL.background;
+				textSymbol.backgroundColor = DEFAULT_TEXT_SYMBOL.backgroundColor;
+				textSymbol.border = DEFAULT_TEXT_SYMBOL.border;
+				textSymbol.borderColor = DEFAULT_TEXT_SYMBOL.borderColor;
+				
+				textSymbol.textFormat = new TextFormat();
+				textSymbol.textFormat.bold = DEFAULT_TEXT_SYMBOL.textFormat.bold;
+				textSymbol.textFormat.italic = DEFAULT_TEXT_SYMBOL.textFormat.italic;
+				textSymbol.textFormat.underline = DEFAULT_TEXT_SYMBOL.textFormat.underline;
+				textSymbol.textFormat.font = DEFAULT_TEXT_SYMBOL.textFormat.font;
+				textSymbol.textFormat.color = DEFAULT_TEXT_SYMBOL.textFormat.color;
+				textSymbol.textFormat.size = DEFAULT_TEXT_SYMBOL.textFormat.size;
+				
+				return textSymbol;
+			}
+			
+			
+			/**
+			 * 监听符号的鼠标点击
+			 * 编辑目标点 
+			*/
+			private function onTextClick(event:MouseEvent):void
+			{
+				var graphic:Graphic = event.currentTarget as Graphic;
+				editTool.activate(EditTool.MOVE|EditTool.EDIT_VERTICES,[graphic]);
+				
+				currEditPoint = graphic;
+				
+//				var textSymbol:TextSymbol = graphic.symbol as TextSymbol;
+//				textInput.text = textSymbol.text;
+			}
+			
+			
+			/**
+			 * 监听文本输入 
+			*/
+			private function inputHand():void
+			{
+				DEFAULT_TEXT_SYMBOL.text = textInput.text;
+			}
+			
+			
+			/**
+			 * 保存标绘 
+			 */
+			private function savePolt():void
+			{
+				var xml:String = PlanUtil.serializePlan(drawTextLayer);
+			}
+			
+			private var xml:String = "";
+			
+			/**
+			 * 重新加载标绘 
+			 */
+			private function reLoadPlot():void
+			{
+				PlanUtil.deserializePlan(drawTextLayer, xml);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:VGroup width="100%" height="100%" horizontalAlign="center">
+		<mx:Image id="text" name="{DrawTool.MAPPOINT}"
+				  width="40" height="40"
+				  buttonMode="true" useHandCursor="true"
+				  click="activateDrawTool(event)"
+				  source="assets/images/i_draw_text.png"
+				  toolTip="添加文本"
+				  />
+		<s:TextInput id="textInput" width="90%"  change="inputHand()" />
+		<controls:TextSymbolControl width="100%"/>
+		<s:Button label="保存" click="savePolt()"/>
+		<s:Button label="重新加载" click="reLoadPlot()"/>
+	</s:VGroup>
+	
+	
+</s:Group>

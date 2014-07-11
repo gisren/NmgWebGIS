@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 creationComplete="init()" xmlns:MultiCheckBox="com.mapUni.UtilComponent.MultiCheckBox.*"
+		 >
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.Map;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.geometry.Polyline;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.layers.supportClasses.TimeReference;
+			import com.esri.ags.symbols.InfoSymbol;
+			import com.esri.ags.symbols.PictureMarkerSymbol;
+			import com.esri.ags.symbols.SimpleLineSymbol;
+			import com.esri.viewer.utils.Hashtable;
+			import com.mapUni.BaseClass.InfoWindow.InfoResult;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			
+			import org.osmf.layout.AbsoluteLayoutFacet;
+			
+			public var map:Map = new Map();
+			
+			private var configXML:XML = new XML();
+			
+			private var _callbackName:String = "";
+			
+			private var timer:Timer = new Timer(5);
+			
+			private var realPointLayer:GraphicsLayer = new GraphicsLayer();
+			private var realLineLayer:GraphicsLayer = new GraphicsLayer();
+			
+			public function set callbackName(value:String):void
+			{
+				_callbackName = value;
+			}
+			
+			public function set listData(value:Array):void
+			{
+				carList.comboData = new ArrayCollection(value);
+				carList.FillData();
+			}
+			
+			/**
+			 * 事件：初始化组件
+			 */
+			private function init():void
+			{
+				map.infoWindow.addEventListener(FlexEvent.HIDE, onInfoWindowHide);
+			}
+			
+			private function onInfoWindowHide(event:FlexEvent):void
+			{
+				isInfoWindowShow = false;	
+			}
+			
+			public function set configXMLData(value:XML):void
+			{
+				configXML = value;
+				
+				var realLocateName:String = configXML.exInterface.realLocateParam;
+				ExternalInterface.addCallback(realLocateName, getRealLocateData);
+				
+				map.addLayer(realLineLayer);
+				map.addLayer(realPointLayer);
+			}
+			
+			
+			
+			private function startButtonHistory_clickHandler(event:MouseEvent):void
+			{
+				var selectedArray:Array = carList.seletedItems;
+				
+				if(!selectedArray || !selectedArray.length)
+				{
+					Alert.show("请先选择对象!");
+					return;
+				}
+				
+				pauseButtonHistory.label="暂停";
+				
+				if(_callbackName)
+				{
+					ExternalInterface.call(_callbackName, selectedArray);
+					timer.delay = numStep.value;
+					timer.addEventListener(TimerEvent.TIMER, onTimer);
+					timer.start();
+					
+					cursorManager.setBusyCursor();
+					
+					function onTimer(event:TimerEvent):void
+					{
+						ExternalInterface.call(_callbackName, selectedArray);
+					}
+				}
+			}
+			
+			
+			
+			private function getRealLocateData(realDataArray:Array):void
+			{
+				cursorManager.removeBusyCursor();
+				
+				if(realDataArray && realDataArray.length)
+				{
+					for(var i:int=0; i<realDataArray.length; i++)
+					{
+						var locateObj:Object = realDataArray[i];
+						
+						if(locateObj)
+						{
+							realLocate(locateObj);
+						}
+					}
+				}
+			}
+			
+			private var pointHashtable:Hashtable = new Hashtable();
+			
+			private var isInfoWindowShow:Boolean = false;
+			
+			private function realLocate(locateObj:Object):void
+			{
+				var id:Number = locateObj["id"];
+				var x:Number = locateObj["X"];
+				var y:Number = locateObj["Y"];
+				var picUrl:String = locateObj["pic"];
+				var name:String = locateObj["name"];
+				var info:String = locateObj["info"];
+				
+				var newMapPoint:MapPoint = new MapPoint(x, y);
+				
+				 if(id)
+				{
+					if(pointHashtable.containsKey(id))
+					{
+						var gra:Graphic = pointHashtable.find(id) as Graphic;
+						drawLine(gra.geometry as MapPoint, newMapPoint);
+						gra.geometry = newMapPoint;
+						
+						var attribute:Object = gra.attributes;
+						attribute.id = id;
+						attribute.title = name;
+						attribute.content = info;
+						
+						if(isInfoWindowShow)
+						{
+							var winContent:realInfoWindow = new realInfoWindow();
+							winContent.title = name;
+							winContent.content = info;
+							
+							map.infoWindow.content = winContent;
+							map.infoWindow.show(newMapPoint);
+						}
+						
+					}
+					else
+					{
+						var mPoint:MapPoint = new MapPoint(x, y);
+						var picSym:PictureMarkerSymbol = new PictureMarkerSymbol(picUrl);
+						var obj:Object = new Object();
+						obj.id = id;
+						obj.name = name;
+						obj.info = info;
+						var graphic:Graphic = new Graphic(mPoint, picSym, obj);
+						graphic.addEventListener(MouseEvent.CLICK, onMapPointClick);
+						realPointLayer.add(graphic);
+						
+						pointHashtable.add(id, graphic);
+					}
+				} 
+			}
+				
+			
+			private function onMapPointClick(event:MouseEvent):void
+			{
+				var graphic:Graphic = event.currentTarget as Graphic;
+				
+				var winContent:realInfoWindow = new realInfoWindow();
+				winContent.title = graphic.attributes.name;
+				winContent.content = graphic.attributes.info;
+				
+				map.infoWindow.content = winContent;
+				map.infoWindow.show(graphic.geometry as MapPoint);
+				
+				isInfoWindowShow = true;
+			}
+			
+			
+			
+			
+			private function drawLine(oldPoint:MapPoint, newPoint:MapPoint):void
+			{
+				var pathArray:Array = [oldPoint, newPoint];
+				
+				var polyLine:Polyline = new Polyline();
+				polyLine.addPath(pathArray);
+				
+				var lineSymbol:SimpleLineSymbol = new SimpleLineSymbol("solid", 0xff0000, 1, 2);
+				
+				var lineGra:Graphic = new Graphic();
+				lineGra.geometry = polyLine;
+				lineGra.symbol = lineSymbol;
+				
+				realLineLayer.add(lineGra);
+			}
+				
+			
+			private function pauseButtonHistory_clickHandler(event:MouseEvent):void
+			{
+				timer.stop();
+			}
+				
+			private function stopButtonHistory_clickHandler():void
+			{
+				timer.stop();
+				
+				realPointLayer.clear();
+				realLineLayer.clear();
+			}
+			
+			public function clear():void
+			{
+				timer.stop();
+				
+				realPointLayer.clear();
+				realLineLayer.clear();
+			}
+			
+			
+		]]>
+	</fx:Script>
+	
+	
+	<s:VGroup width="100%" height="100%" gap="8"  horizontalAlign="left"
+			  paddingLeft="1" paddingRight="1" paddingTop="1" paddingBottom="1">
+		<s:HGroup width="100%" >
+			<s:Label text="选择对象：" height="100%" verticalAlign="middle"/>
+			<MultiCheckBox:MultiComboBox id="carList" width="100%"/>
+		</s:HGroup>
+		
+		<s:HGroup width="100%"  verticalAlign="middle" gap="4">
+			<s:Label text="时间间隔：&#xd;" height="100%" verticalAlign="middle"/>
+			<s:NumericStepper id="numStep" width="50" minimum="1" maximum="60" value="5"/>
+			<s:Label text="秒" />
+		</s:HGroup>
+		<s:HGroup width="100%" verticalAlign="middle" horizontalAlign="center"  gap="15" >
+			<s:Button id="startButtonHistory" label="开始" click="startButtonHistory_clickHandler(event)"/>					
+			<s:Button id="pauseButtonHistory" label="暂停" click="pauseButtonHistory_clickHandler(event)"/>
+			<s:Button id="stopButtonHistory" label="停止" click="stopButtonHistory_clickHandler()"/>
+		</s:HGroup>
+	</s:VGroup>
+	
+	
+</s:Group>

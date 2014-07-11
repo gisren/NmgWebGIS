@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 creationComplete="init()"
+		 >
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.utils.Hashtable;
+			
+			import mx.charts.HitData;
+			import mx.charts.events.ChartItemEvent;
+			import mx.charts.series.PieSeries;
+			import mx.collections.ArrayCollection;
+			
+			
+			
+			/** 当鼠标点击时派发  */
+			[Event(name="chartItemClick", type="com.mapUni.UtilComponent.Charts.UE_ChartEvent")]
+			
+			
+			public static const LABELPOSITION_NONE:String = "none";
+			
+			public static const LABELPOSITION_OUTSIDE:String = "outside";
+			
+			public static const LABELPOSITION_CALLOUT:String = "callout";
+			
+			public static const LABELPOSITION_INSIDE:String = "inside";
+			
+			
+			
+			[Bindable]
+			/**
+			 * 数据源
+			*/
+			public var V_dataProvider:ArrayCollection = new ArrayCollection();
+			
+			/**
+			 * 名称字段  
+			 */
+			public var V_nameField:String = "";
+			
+			/** 
+			 * 数据字段  
+			 */
+			public var V_valueFields:Array = new Array();
+			
+			/**
+			 * V_valueFields 数据字段所对应名称的键值对儿 
+			 */
+			public var V_nameHashtable:Hashtable;
+			
+			
+			[Bindable]
+			/** 
+			 * 鼠标移动上时显示提示框 
+			 */
+			public var V_showDataTips:Boolean = true;
+			
+			
+			[Bindable]
+			/**
+			 * 显示所有提示框
+			*/
+			public var V_showAllDataTips:Boolean = false;
+			
+			
+			[Bindable]
+			/**
+			 * 图表标题
+			 */
+			public var V_title:String = "";
+			
+			
+			/** 
+			 * 图形提示信息的位置 
+			 */
+			public var V_labelPosition:String = "";
+			
+			/**
+			 * 填充颜色 
+			*/
+			public var V_fillColors:Array = null;
+			
+			
+			public function init():void
+			{
+				var seriesArray:Array = new Array();
+				
+				for(var i:int=0; i<V_valueFields.length; i++)
+				{
+					var pieSeries:PieSeries = new PieSeries();
+					pieSeries.field = V_valueFields[i];
+					pieSeries.nameField = V_nameField;
+					
+					if(V_labelPosition)
+						pieSeries.setStyle("labelPosition", V_labelPosition);
+					
+					if(V_fillColors)
+						pieSeries.setStyle("fills", V_fillColors);
+					
+					seriesArray.push(pieSeries);
+				}
+				pieChart.series = seriesArray;
+				
+				if(seriesArray.length > 1)
+				{
+					pieChart.dataTipFunction = dataTipFunc;
+				}
+			}
+			
+			
+			/** 
+			 * 监听：图形点击  
+			 */
+			private function onItemClick(event:ChartItemEvent):void
+			{
+				this.dispatchEvent(new UE_ChartEvent("chartItemClick", event.currentTarget));
+			}
+			
+			
+			/**
+			 * 饼图的数据提示 
+			 */
+			private function dataTipFunc(hitData:HitData):String
+			{
+				var key:String = hitData.element["field"];
+				
+				var name:String = V_nameHashtable.find(key);
+				
+				var percentValue:String = hitData.chartItem["percentValue"];
+				percentValue = percentValue.substr(0,6) + "%";
+				
+				var toopTip:String = name + "\n" + hitData.item[V_nameField] + "\n" + percentValue + "\n(" + hitData.item[key] + ")" ;
+				
+				return toopTip;
+			}
+			
+			
+		]]>
+	</fx:Script>
+	
+	
+	<mx:PieChart id="pieChart" 
+				 width="100%" height="100%"
+				 dataProvider="{V_dataProvider}"
+				 showDataTips="{V_showDataTips}"
+				 showAllDataTips="{V_showAllDataTips}"
+				 fontSize="12"
+				 itemClick="onItemClick(event)" 
+				 
+				 ><!--dataTipFunction="dataTipFunc"-->
+		<mx:series>
+			<mx:PieSeries id="pieSeries" labelPosition="inside"  />
+		</mx:series>
+	</mx:PieChart>
+	
+	<!--<mx:Legend dataProvider="{piechart1}"/>-->
+	
+</s:Group>

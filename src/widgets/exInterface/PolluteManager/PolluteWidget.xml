@@ -1,0 +1,98 @@
+<configuration>
+
+	<polluteUrl id="污染源图层" nameField="QYMC" codeField="QYDM">
+	    http://211.99.132.163/ArcGIS/rest/services/LiaoNing/MapServer/87
+	</polluteUrl>
+	  
+	<regionalUrl id="省级" nameField="name" codeField="CODE">
+	    http://10.15.208.173/ArcGIS/rest/services/nmgBaseMap/MapServer/385
+	</regionalUrl>
+	  
+	<cityUrl id="市级" nameField="name" codeField="CODE">
+	    http://10.15.208.173/ArcGIS/rest/services/nmgBaseMap/MapServer/384
+	</cityUrl>
+	  
+	<countyUrl id="县级" nameField="name" codeField="CODE">
+	    http://10.15.208.173/ArcGIS/rest/services/nmgBaseMap/MapServer/383
+	</countyUrl>
+  
+	<videoUrl>
+	    http://223.100.253.205/video.htm?m=0&s=0&t=0&uid=080101300001&enterprise_code=
+	</videoUrl>
+	
+	<webservice>
+	       <!--   http://192.168.5.102/liaoning/WebService/ArcGisDataWebService.asmx?wsdl-->
+	       <!--   http://218.60.147.63:8080/WebService/ArcGisDataWebService.asmx?wsdl  -->   
+	       <!--   http://192.168.5.142/liaoning/WebService/ArcGisDataWebService.asmx?wsdl -->
+	       <!--   http://192.168.5.247/liaoning/WebService/ArcGisDataWebService.asmx?wsdl -->
+	       <!--   http://192.168.5.247/neimenggu/WebService/ArcGisDataWebService.asmx?wsdl -->
+	              http://10.15.208.172:8080/WebService/ArcGisDataWebService.asmx?wsdl
+	 </webservice>
+	<companyClassIcon>
+	    assets/yutuImages/companyClassify/
+	</companyClassIcon>
+	
+	
+	<industrys>
+	    <industryCatogry code="" name="全部行业"/>
+	    <industryCatogry code="A03" name="畜牧"/>
+	    <industryCatogry code="A04" name="渔业"/>
+	    <industryCatogry code="H6361" name="煤炭"/>
+	    <industryCatogry code="B07" name="石油"/>
+	    <industryCatogry code="C14" name="食品"/>
+	    <industryCatogry code="C17" name="纺织"/>
+	    <industryCatogry code="C22" name="造纸"/>	    
+	    <industryCatogry code="C362" name="化工"/>
+	    <industryCatogry code="C27" name="医药"/>
+	    <industryCatogry code="C3591" name="钢铁"/>
+	    <industryCatogry code="C34" name="机械加工"/>
+	    <industryCatogry code="D44" name="电力"/>
+	    <industryCatogry code="I67" name="餐饮"/>  
+	    <industryCatogry code="C33" name="有色金属"/>
+	    <industryCatogry code="9902" name="污水处理厂"/>
+<!--	    <industryCatogry code="M" name="科学研究和综合技术服务业"/>  -->
+<!--	    <industryCatogry code="S" name="国家机关、政党机关和社会团体"/>  -->
+<!--	    <industryCatogry code="" name="其他行业"/>   -->
+	</industrys>
+	
+	<!--http://10.1.8.79-->
+  <InterFaceMethods>
+    <method name="" id=""></method>
+    <method name="" id=""></method>
+    <method name="" id=""></method>
+    <method name="" id=""></method>
+    <method name="" id=""></method>
+    <method name="" id=""></method>
+  </InterFaceMethods>
+  <labels>
+    <pointlabel>点查询</pointlabel>
+    <linelabel>线查询</linelabel>
+    <polygonLabel>多边形查询</polygonLabel>
+    <bufferRadius>1000</bufferRadius>
+  </labels>
+  
+  <!--超链接按钮样式-->
+ <EditLink>
+     <editText value="坐标更改"/>   <!--名称-->
+     <editFontSize value="12"/>    <!--字体大小-->
+     <editColor value="0xff0000"/> <!--字体颜色-->
+     <editWidth value="70"/> 
+     <editheight value="25"/>
+     <editPaddLeft value="0"/>    <!--居左边距-->
+  </EditLink>
+  <!--污染源网格样式-->
+  <pollFillSymbol>
+      <fillColor value="0x0000ff"/>     <!--填充颜色-->
+      <fillAlpha value="0.3"/>          <!--填充颜色透明度-->
+      <outlineColor value="0xffffff"/>  <!--填充边线颜色-->
+      <mouseOverColor value="0xffffff"/><!--鼠标悬浮后填充颜色-->
+  </pollFillSymbol>
+
+</configuration>
+
+
+
+
+
+
+

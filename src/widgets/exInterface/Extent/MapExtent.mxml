@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:viewer="com.esri.viewer.*"
+				   widgetConfigLoaded="configLoad()"
+				   >
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.FeatureSet;
+			import com.esri.ags.Graphic;
+			import com.esri.ags.geometry.Extent;
+			import com.esri.ags.utils.JSON;
+			import com.mapUni.BaseClass.MapUni;
+			
+			import flash.utils.setTimeout;
+			
+			import mx.collections.ArrayCollection;
+			
+			
+			private function configLoad():void
+			{
+				if(configXML)
+				{
+					var exSetExtentName:String = configXML.externalInterface.exSetExtent;
+					
+					ExternalInterface.addCallback(exSetExtentName, mapExtent);
+					
+				}
+				
+//				test();
+			}
+			
+			
+			/**
+			 * 测试 
+			*/
+			private function test():void
+			{
+				var object:Object = 
+				{
+					setExtent:{ enable:false,  Xmin:118.7326426503,  Ymin:32.0489906203987, Xmax:118.738793557,  Ymax:32.0527799120504}, 
+					searchExtent:{ enable:true,  layerName:"县界",  searchWhere:"Name = '九江市'"}
+				};
+				
+				var str:String = JSON.encode(object);
+				
+				setTimeout(mapExtent, 5000, object);
+					
+			}
+			
+			
+			/**
+			 * 地图区域显示 
+			*/
+			private function mapExtent(extentObj:Object):void
+			{
+				var setExtentObj:Object = extentObj["setExtent"];
+				var searchExtentObj:Object = extentObj["searchExtent"];
+				
+				if(setExtentObj)
+				{
+					if(setExtentObj["enable"] && setExtentObj["enable"]!="false")
+					{
+						doSetExtent(setExtentObj);
+					}
+					else 
+					{
+						doSearch();
+					}
+				}
+				else 
+				{
+					doSearch();
+				}
+				
+				/*
+				显示查询区域判断
+				*/
+				function doSearch():void
+				{
+					if(searchExtentObj)
+					{
+						if(searchExtentObj["enable"] && searchExtentObj["enable"] != "false")
+						{
+							doSearchExtent(searchExtentObj);
+						}
+					}
+				}
+				
+			}
+			
+			
+			/**
+			 * 根据绝对经纬度来设置地图显示区域 
+			*/
+			private function doSetExtent(setExtentObj:Object):void
+			{
+				var minX:Number = setExtentObj["Xmin"];
+				var minY:Number = setExtentObj["Ymin"];
+				var maxX:Number = setExtentObj["Xmax"];
+				var maxY:Number = setExtentObj["Ymax"];
+				
+				if(	minX && minY && maxX && maxY)
+				{
+					map.extent = new Extent(minX, minY, maxX, maxY);
+				}
+			}
+			
+			
+			/**
+			 * 根据查询到的图像对象来确定显示的区域 
+			*/
+			private function doSearchExtent(searchExtentObj:Object):void
+			{
+				var layerName:String = searchExtentObj["layerName"];
+				var searchWhere:String = searchExtentObj["searchWhere"];
+				
+				if(layerName && searchWhere)
+				{
+					var layerUrl:String = MapUni.layerUrl(map, layerName);
+					MapUni.search(layerUrl, null, searchWhere, onSeachRest);
+				}
+			}
+			
+			
+			/**
+			 * 成功获得查询结果
+			 * 地图缩放到结果所在区域 
+			*/
+			private function onSeachRest(data:FeatureSet):void
+			{
+				var dataColl:ArrayCollection = new ArrayCollection();
+				
+				for each(var gra:Graphic in data.features)
+				{
+					dataColl.addItem(gra);
+				}
+				
+				MapUni.dataExtent(dataColl, map);
+			}
+				
+		]]>
+	</fx:Script>
+	
+</viewer:BaseWidget>
+
+
+
+
+
+
+
+
+
+
+
+
+

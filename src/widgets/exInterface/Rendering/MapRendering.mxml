@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:viewer="com.esri.viewer.*"
+				   widgetConfigLoaded="configLoad()"
+				   >
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.utils.JSON;
+			import com.mapUni.BaseClass.MapUni;
+			import com.mapUni.FunctionClass.MapRendering.UF_MapRendering;
+			
+			import flash.utils.setTimeout;
+			
+			import mx.collections.ArrayCollection;
+			
+			//private var graphicLayer:GraphicsLayer = new GraphicsLayer();
+			private var graphicLayer:GraphicsLayer;
+			
+			private function configLoad():void
+			{
+				graphicLayer=map.getLayer("render") as GraphicsLayer;
+ 
+				
+				//map.addLayer(graphicLayer);
+				
+				if(configXML)
+				{
+					var exRenderingListName:String = configXML.externalInterface.exRenderingList;
+					var exClearRenderingName:String = configXML.externalInterface.exClearRendering;
+					
+					ExternalInterface.addCallback(exRenderingListName, doMapRendering);
+					ExternalInterface.addCallback(exClearRenderingName, doClearRendering);
+				}
+				
+				//test();
+			}
+			
+			
+			/**
+			 * 测试 
+			*/
+			private function test():void
+			{
+				var array:Array = 
+					[
+						{
+							searchObject:{ layerName:"县界",  searchWhere:"NAME = '长岭县'"}, 
+							fillSymbol:{color:0xff0000,  alpha:0.75},
+							lineSymbol:{color:0xffffff,  alpha :0.75,  width:3 },
+							extentName:{text:"南京市",  color:0x000000,  size:16},
+							extentToolTip:{enable:false,text:"嘿嘿\n呵呵"},
+							clickCallback:{ enable:true,  funcName:"show",  parameter:["asd",2]}
+						},
+						{
+							searchObject:{ layerName:"县界",  searchWhere:"name = '松原市'"}, 
+							fillSymbol:{color:0xff0000,  alpha:0.75},
+							lineSymbol:{color:0xffffff,  alpha :0.75,  width:3 },
+							extentName:{text:"六合区",  color:0x000000,  size:16},
+							extentToolTip:{enable:false, text:"嘿嘿\n呵呵"},
+							clickCallback:{ enable:true,  funcName:"show",  parameter:["asd",2]}
+						},
+			
+					];
+				
+				var stri:String = JSON.encode(array);
+				setTimeout(doMapRendering, 5000, array);
+			}
+			
+			
+			/**
+			 * 地图渲染 
+			*/
+			private function doMapRendering(renderAry:Array):void
+			{
+				if(renderAry)
+				{
+					/* 
+					循环地图渲染对象的个数
+					*/
+					for(var i:int=0; i<renderAry.length; i++)
+					{
+						var renderObj:Object = renderAry[i];
+						
+						renderAnalysis(renderObj);
+					}
+				}
+			}
+			
+			
+			/**
+			 * 解析可执行的参数 
+			*/
+			private function renderAnalysis(renderObj:Object):void
+			{
+				/*
+				获取参数集 
+				*/
+				var searchLocateObj:Object = renderObj["searchObject"];
+				var FillSymbolObj:Object = renderObj["fillSymbol"];
+				var lineSymbolObj:Object = renderObj["lineSymbol"];
+				var extentNameObj:Object = renderObj["extentName"];
+				var extentToolTipObj:Object = renderObj["extentToolTip"];
+				
+				//回调
+				var clickCallbackObj:Object=renderObj["clickCallback"];
+				
+				//tipWindow
+				var tipWindow:Object=renderObj["tipWindow"];
+				
+				/*
+				定义参数默认值
+				*/
+				var layerName:String = "";
+				var searchWhere:String = "";
+				
+				var extentName:String = "";
+				var extentNameSize:Number = 13;
+				var extentNameColor:Number = 0;
+				
+				var toolTip:Object = "";
+				
+				var fillColor:Number = 0;
+				var fillAlpha:Number = 0.75;
+				
+				var lineColor:Number = 0;
+				var lineAlpha:Number = 0.75;
+				var lineWidth:Number = 1;
+				
+				/*
+				判断参数是否可用
+				为参数赋值
+				*/
+				if(searchLocateObj)
+				{
+					layerName = searchLocateObj["layerName"];
+					searchWhere = searchLocateObj["searchWhere"];
+				}
+				if(FillSymbolObj)
+				{
+					fillColor = FillSymbolObj["color"];
+					fillAlpha = FillSymbolObj["alpha"];
+				}
+				if(lineSymbolObj)
+				{
+					lineColor = lineSymbolObj["color"];
+					lineAlpha = lineSymbolObj["alpha"];
+					lineWidth = lineSymbolObj["width"];
+				}
+				if(extentNameObj)
+				{
+					extentName = extentNameObj["text"];
+					extentNameSize = extentNameObj["size"];
+					extentNameColor = extentNameObj["color"];
+				}
+				if(extentToolTipObj)
+				{
+					toolTip =extentToolTipObj;
+				}
+				
+				var layerUrl:String = MapUni.layerUrl(map,layerName);
+				/* 
+				调用地图渲染的方法
+				*/
+				var renderClass:UF_MapRendering = new UF_MapRendering(graphicLayer, graphicLayer);
+				renderClass.map=map;
+				renderClass.RenderingSingle_New(layerUrl, searchWhere,clickCallbackObj,tipWindow, fillColor, fillAlpha, extentName, null, lineColor, lineAlpha, lineWidth, extentNameSize, extentNameColor);
+			
+				
+				
+			}
+			
+			
+			/**
+			 * 清除地图渲染
+			*/
+			private function doClearRendering():void
+			{
+				graphicLayer.clear();
+			}
+			
+		
+		]]>
+	</fx:Script>
+	
+</viewer:BaseWidget>

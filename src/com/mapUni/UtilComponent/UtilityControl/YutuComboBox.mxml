@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="175" height="{isFocusIn?165:23}"
+		 creationComplete="group1_creationCompleteHandler(event)">
+	<s:layout>
+		<s:VerticalLayout horizontalAlign="center" paddingBottom="0" paddingRight="0" paddingTop="0" paddingLeft="0" gap="0"/>
+	</s:layout>
+	<fx:Script>
+		<![CDATA[
+			import flashx.textLayout.container.ISandboxSupport;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.events.IndexChangedEvent;
+			import mx.events.MoveEvent;
+			import mx.managers.PopUpManager;
+			
+			import spark.events.IndexChangeEvent;
+			import spark.events.TextOperationEvent;
+			
+			[Bindable] private var _dataPro:ArrayCollection=new ArrayCollection();
+			
+			[Bindable] private var isFocusIn:Boolean=false;
+			[Bindable] private var tiFocusIn:Boolean=false;
+			private var tiIn:Boolean=false;
+			[Bindable] private var listFocusIn:Boolean=false;
+			[Bindable] private var _labelField:String;
+			[Bindable] private var rowHeight:Number=23;
+			[Bindable] private var rowGap:Number=1;
+			
+			private var _selectedItem:Object ;
+			
+			public function get selectedItem():Object{
+				if(listData.selectedItem)
+				return listData.selectedItem;
+				else
+					return (listData.dataProvider as ArrayCollection).source[listData.selectedIndex];//.selectedItem;
+			}
+			public function set selectedIndex(value:int):void{
+				if(value<0 || value>(listData.dataProvider as ArrayCollection).source.length)
+				{
+					listData.selectedItem=null;
+					tiContent.text="";
+					tiContent_changeHandler();
+				}
+				listData.selectedIndex=value;
+			}
+			
+			public function set dataProvider(value:ArrayCollection):void{
+				_dataPro=value as ArrayCollection;
+			}
+			public function set labelField(value:String):void{
+				_labelField=value;
+			}
+			
+			public function set text(value:String):void{
+				tiContent.text=value;
+			}
+			
+			public function setChange(value:Function):void{
+				listData.addEventListener(IndexChangeEvent.CHANGE,value);
+				//listData.scroller.setStyle('horizontalScrollPolicy','off');
+			}
+			public function customInit():void{
+				
+			}
+
+			protected function group1_creationCompleteHandler(event:FlexEvent):void
+			{
+				//listData.x\
+				PopUpManager.addPopUp(listData,this,false);
+				afterTextInputMove(new MoveEvent(MoveEvent.MOVE));
+//				this.dispatchEvent(new MoveEvent(MoveEvent.MOVE));tiContent.parent
+//				this.addEventListener(MoveEvent.MOVE,afterTextInputMove);
+			}
+			
+			public function afterTextInputMove(event:MoveEvent):void{				
+				var listPoint:Point=localToGlobal(new Point(tiContent.x,tiContent.y + tiContent.height));
+				listData.x=listPoint.x;
+				listData.width=this.width;
+				listData.y=listPoint.y;
+			}
+			
+			
+			private function tiFocusInHandler(event:FocusEvent):void{
+				
+				tiFocusIn=true;	
+				setFocusValue();
+			}
+			private function tiFocusOutHandler(event:FocusEvent):void{
+				tiFocusIn=false;
+				setFocusValue();
+			}
+
+
+			protected function listData_clickHandler(event:MouseEvent):void
+			{
+				if(listData.selectedIndex>-1)
+				{
+					if(tiContent.text !=String( listData.selectedItem))
+					{
+						afterSelect();
+					}
+				}
+			}
+
+			
+			private function setFocusValue():void{
+				isFocusIn=(tiFocusIn && tiIn)|| listFocusIn;
+			}
+			
+			private var isAfterSelect:Boolean=false;
+			
+			private function afterSelect():void{
+				if(!listData.selectedItem)
+					return;
+				_selectedItem=listData.selectedItem;
+				tiContent.text=String(_selectedItem[listData.labelField]);
+				//tiContent.text=String(listData.selectedItem[listData.labelField]);
+				//tiContent.setSelection(tiContent.text.length,tiContent.text.length);
+				tiContent_changeHandler();
+				tiFocusIn=false;
+				listFocusIn=false;
+				setFocusValue();
+				isAfterSelect=true;
+			}
+
+
+			protected function listData_rollOutHandler(event:MouseEvent):void
+			{
+				listFocusIn=false;
+				setFocusValue();
+			}
+
+
+			protected function listData_rollOverHandler(event:MouseEvent):void
+			{
+				listFocusIn=true;
+				setFocusValue();
+			}
+
+			private var lastString:String="";
+			protected function tiContent_changeHandler():void
+			{		
+				if(isAfterSelect)
+				{
+					listData.selectedIndex=-1;
+					listData.selectedItem=null;
+					listData.dispatchEvent(new IndexChangeEvent(IndexChangeEvent.CHANGE));
+					isAfterSelect=false;
+				}
+				var currentText:String=tiContent.text;
+				
+				if(lastString==currentText)
+					return;
+				
+				
+				_dataPro.filterFunction=func;
+				_dataPro.refresh();
+				lastString=currentText;
+				
+				tiFocusIn=true;
+				setFocusValue();
+				
+				var rowCount:int=(listData.dataProvider as ArrayCollection).length;
+				if(rowCount<6)
+					listData.height = (rowCount+1)*(listScroll.rowHeight + rowGap*2);
+				else
+					listData.height = 6*(listScroll.rowHeight + rowGap*2);
+				
+				function func(item:Object):Boolean
+				{
+					return (item[_labelField] as String).toUpperCase().search(currentText.toUpperCase())>=0?true:false;
+				}
+			}
+
+
+			protected function tiContent_keyUpHandler(event:KeyboardEvent):void
+			{
+				switch(event.keyCode)
+				{
+					case 13://回车
+						if(listData.selectedIndex>-1)
+						{
+							afterSelect();
+						}
+						break;
+					case 38://向上箭头
+						if(listData.selectedIndex>0)
+						{
+							listData.selectedIndex--;
+							listScroll.verticalScrollPosition= (listData.selectedIndex-1)*(listScroll.rowHeight + rowGap);
+						}
+						break;
+					case 40://向下箭头
+						if(listData.selectedIndex<listData.dataProvider.length-1)
+						{
+							listData.selectedIndex++;
+							listScroll.verticalScrollPosition= (listData.selectedIndex-1)*(listScroll.rowHeight + rowGap);
+						}
+						
+						break;
+					case 46:
+						break;
+					default:
+						return;
+				}
+					
+			}
+
+
+			protected function tiContent_rollOutHandler(event:MouseEvent):void
+			{
+				tiContent.focusManager.hideFocus();//.dispatchEvent(new FocusEvent(FocusEvent.FOCUS_OUT));
+				tiIn=false;	
+				setFocusValue();
+			}
+
+
+			protected function tiContent_rollOverHandler(event:MouseEvent):void
+			{
+					tiIn=true;
+					setFocusValue();
+			}
+
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<s:List id="listData" height="142" x="0" y="{tiContent.height}" visible="{isFocusIn}"			 
+				allowMultipleSelection="false" 
+				rollOut="listData_rollOutHandler(event)" 
+				rollOver="listData_rollOverHandler(event)"
+				click="listData_clickHandler(event)"		
+				labelField="{_labelField}" 
+				dataProvider="{_dataPro}">		
+			<s:layout>
+				<s:VerticalLayout gap="{rowGap}" id="listScroll" horizontalAlign="left"  verticalAlign="top" />
+			</s:layout>
+		</s:List>
+	</fx:Declarations>
+	<mx:TextInput id="tiContent" width="100%" height="{rowHeight}" x="0" y="0" 
+				   rollOut="tiContent_rollOutHandler(event)"
+				   focusIn="tiFocusInHandler(event)" 
+				  change="tiContent_changeHandler()"
+				  rollOver="tiContent_rollOverHandler(event)"
+				  focusOut="tiFocusOutHandler(event)"
+				  keyUp="tiContent_keyUpHandler(event)"
+				 />	<!--
+				   -->
+</s:Group>

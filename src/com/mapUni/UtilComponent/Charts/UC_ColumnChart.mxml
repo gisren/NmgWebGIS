@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 creationComplete="init()" 
+		 xmlns:renderers="com.esri.ags.renderers.*"
+		 >
+	
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.utils.Hashtable;
+			
+			import mx.charts.AxisRenderer;
+			import mx.charts.HitData;
+			import mx.charts.series.ColumnSeries;
+			import mx.collections.ArrayCollection;
+			import mx.graphics.GradientEntry;
+			import mx.graphics.LinearGradient;
+			import mx.graphics.SolidColorStroke;
+			
+			
+			[Bindable]
+			/**
+			 * 数据
+			 */
+			public var V_dataProvider:ArrayCollection = new ArrayCollection();
+			
+			[Bindable]
+			/** 
+			 * 鼠标移动上时显示提示框 
+			 */
+			public var V_showDataTips:Boolean = true;
+			
+			[Bindable]
+			/** 
+			 * 显示所有提示框 
+			 */
+			public var V_showAllDataTips:Boolean = false;
+			
+			[Bindable]
+			/**
+			 * 图表标题
+			*/
+			public var V_title:String = "";
+			
+			[Bindable]
+			/**
+			 * X轴上展示项的字段名 
+			*/
+			public var V_nameField:String = "";
+			
+			/**
+			 * Y轴上要展示的数据项字段，数组格式
+			*/
+			public var V_valueFields:Array = new Array();
+			
+			/**
+			 * V_valueFields 数据字段所对应名称的键值对儿 
+			*/
+			public var V_nameHashtable:Hashtable;
+			
+			/**
+			 * 定义X轴上每一项的颜色,如果给定的颜色数与项数不符，则会按给定的颜色依次循环赋值<br/>
+			 * 如果每一项中又包含若干系列，那么同一项中的所有系列的颜色将会相同。<br/>
+			 */
+			public var V_fillColors:Array;
+			
+			/**
+			 * 文字颜色 
+			*/
+			public var V_textColor:uint;
+			
+			/**
+			 * X轴的可见性, 默认为true
+			*/
+			public var V_xAxisVisible:Boolean = true;
+			
+			/**
+			 * Y轴的可见性, 默认为true
+			*/
+			public var V_yAxisVisible:Boolean = true;
+			
+			/**
+			 * 背景横线的可见性，默认为true 
+			*/
+			public var V_lineAxisVisible:Boolean = true;
+			
+			
+			/**
+			 * X轴样式 
+			*/
+			public var V_xAxisStroke:SolidColorStroke;
+			
+			/**
+			 * 图表的最大值 
+			*/
+			public var V_maximum:Number;
+			
+			
+			/**
+			 * 列的宽度比, 最大为1，最小为0 
+			*/
+			public var V_columnWidthRatio:Number;
+			
+			
+			
+			private function init():void
+			{
+				//设置图表数据项
+				setChartSeries();
+				
+				//设置图表属性
+				setChatProperty();
+			} 
+			
+			
+			/**
+			 * 设置图表属性 
+			*/
+			private function setChatProperty():void
+			{
+				//字段中文名称哈希表
+				if(V_nameHashtable)
+				{
+					columnChart.dataTipFunction = reSetDataTip;
+				}
+				
+				//文字颜色
+				if(V_textColor)
+				{
+					columnChart.setStyle("color", V_textColor);
+				}
+				
+				//X轴可见性
+				if(!V_xAxisVisible)
+				{
+					X_axisRenderer.visible = false;
+				}
+				
+				//Y轴可见性
+				if(!V_yAxisVisible)
+				{
+					Y_axisRenderer.visible = false;
+				}
+				
+				//背景横线可见性
+				if(!V_lineAxisVisible)
+				{
+					gridLines.visible = false;
+				} 
+				
+				//图标数据的最大值
+				if(V_maximum)
+				{
+					lineAxis.maximum = V_maximum;
+				}
+				
+				if(V_xAxisStroke)
+				{
+					X_axisRenderer.setStyle("axisStroke", V_xAxisStroke);
+				}
+				
+				if(V_columnWidthRatio)
+				{
+					columnChart.setStyle("columnWidthRatio", V_columnWidthRatio);
+				}
+				
+			}
+			
+			
+			/**
+			 * 设置图标数据项 
+			*/
+			private function setChartSeries():void
+			{
+				var seriesArray:Array = new Array();
+				
+				for(var i:int=0; i<V_valueFields.length; i++)
+				{
+					var columnSeries:ColumnSeries = new ColumnSeries();
+					columnSeries.yField = V_valueFields[i];
+					columnSeries.displayName = V_valueFields[i];
+					
+					if(V_fillColors)
+					{
+						if(V_valueFields.length == 1)
+						{
+							var linearGradArray:Array = new Array();
+							
+							for(var n:int=0; n<V_fillColors.length; n++)
+							{
+								//渐变填充效果
+								var gradientEntry5:GradientEntry = new GradientEntry(V_fillColors[n], 0);
+								var gradientEntry6:GradientEntry = new GradientEntry(0, 1);
+								var linearGradient3:LinearGradient = new LinearGradient();
+								linearGradient3.entries = [gradientEntry5, gradientEntry6];
+								
+								linearGradArray.push(linearGradient3);
+							}
+							columnSeries.setStyle("fills", linearGradArray);
+						}
+						else
+						{
+							if(V_fillColors[i])
+							{
+								//渐变填充效果
+								var gradientEntry1:GradientEntry = new GradientEntry(V_fillColors[i], 0);
+								var gradientEntry2:GradientEntry = new GradientEntry(0, 1);
+								var linearGradient:LinearGradient = new LinearGradient();
+								linearGradient.entries = [gradientEntry1, gradientEntry2];
+								
+								columnSeries.setStyle("fill", linearGradient);
+							}
+							else
+							{
+								var index:Number = i - V_fillColors.length;
+								
+								//渐变填充效果
+								var gradientEntry3:GradientEntry = new GradientEntry(V_fillColors[index], 0);
+								var gradientEntry4:GradientEntry = new GradientEntry(0, 1);
+								var linearGradient2:LinearGradient = new LinearGradient();
+								linearGradient2.entries = [gradientEntry3, gradientEntry4];
+								
+								columnSeries.setStyle("fill", linearGradient2);
+							}
+						}
+					}
+					
+					seriesArray.push(columnSeries);
+				}
+				columnChart.series = seriesArray;
+			}
+			
+			
+			/**
+			 * 功能：重新定义数据提示框中的内容 
+			*/
+			private function reSetDataTip(hitData:HitData):String
+			{
+				var key:String = hitData.element["yField"];
+				
+				var name:String = V_nameHashtable.find(key);
+				
+				var toopTip:String = name + "\n" + hitData.item[V_nameField] + "\n" + hitData.item[key];
+				
+				return toopTip;
+			} 
+			
+			
+		]]>
+	</fx:Script>
+	
+	
+	<mx:ColumnChart id="columnChart" 
+					height="100%" width="100%"  
+					dataProvider="{V_dataProvider}"
+					showDataTips="{V_showDataTips}"
+					showAllDataTips="{V_showAllDataTips}" 
+					fontSize="12" 
+					>
+		
+		<mx:horizontalAxis>
+			<mx:CategoryAxis id="categoryAxis" 
+							 title="{V_title}" 
+							 categoryField="{V_nameField}"
+							 />
+		</mx:horizontalAxis>
+		
+		<mx:verticalAxis>
+			<mx:LinearAxis id="lineAxis"  />
+		</mx:verticalAxis>
+		
+		<mx:backgroundElements>
+			<mx:GridLines id="gridLines" />
+		</mx:backgroundElements>
+		
+		<mx:horizontalAxisRenderers>
+			<mx:AxisRenderer id="X_axisRenderer" axis="{categoryAxis}" visible="true"  > 
+				<!--<mx:axisStroke>
+					<mx:SolidColorStroke caps="square" color="#09C81D" weight="4"/>
+				</mx:axisStroke>-->
+			</mx:AxisRenderer>
+		</mx:horizontalAxisRenderers>
+		
+		
+		<mx:verticalAxisRenderers>
+			<mx:AxisRenderer id="Y_axisRenderer" axis="{lineAxis}" visible="true"> 
+				<!--<mx:axisStroke>
+					<mx:SolidColorStroke caps="square" color="#09C81D" weight="4"/>
+				</mx:axisStroke>-->
+			</mx:AxisRenderer>
+		</mx:verticalAxisRenderers>
+		
+	</mx:ColumnChart>
+	
+	
+	<!--<mx:Legend dataProvider="{columnChart}" />-->
+	
+</s:Group>

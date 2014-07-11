@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+//	Copyright (c) 2012 中科宇图天下科技有限公司 - 环保事业部
+//
+//	DataGrid 数据分页显示
+//
+//  Author：liuXL
+//  Date：2012-03-31
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 >
+	
+	<fx:Metadata>
+		[Event(name="pageChange",type="com.mapUni.UtilComponent.pageNavigation.UE_PageNavigationEvent")]
+		[Event(name="dataChange",type="com.mapUni.UtilComponent.pageNavigation.UE_PageNavigationEvent")]
+	</fx:Metadata>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			
+			import mx.collections.ArrayCollection;
+			
+			
+			[Bindable]
+			/** 每页显示的行数 */
+			public var pageSize:int;		//每页显示行数
+			
+			[Bindable]
+			/** 当前页数据 */
+			public var pageCurrentData:ArrayCollection = new ArrayCollection();
+			
+			[Bindable]
+			private var _pageData:ArrayCollection = new ArrayCollection();			//所有数据
+			[Bindable]
+			public var totalPage_lnydzf:int=0;		//外部传入的总条数
+			[Bindable]
+			public var  totalPage:int=0;		//总页数
+			 
+			[Bindable]
+			private var currentPage:int=0;		//当前页
+			
+			private var acPageData:ArrayCollection = new ArrayCollection();			//当前页数据
+			
+			/** 数据源是否已经改变 */
+			private var isDataChange:Boolean = false;
+			
+			
+			/**
+			 * 数据源
+			*/
+			public function set pageData(value:ArrayCollection):void
+			{
+				//_pageData=null;
+				
+				_pageData = value;
+				
+				isDataChange = true;
+				
+				pageGridInit();
+				
+				 
+				
+			}
+			public function get pageData():ArrayCollection
+			{
+				return _pageData;
+			}
+			
+			
+			/**
+			 * 开始组织分页 
+			*/
+			private function pageGridInit():void
+			{
+				if( _pageData!=null && _pageData.length!=0)
+				{
+					//totalPage=Math.ceil(_pageData.length/pageSize);
+					totalPage=Math.ceil(totalPage_lnydzf/pageSize); 
+					loadData(0);
+				}
+				else
+				{
+					currentPage=0;
+					totalPage=0;
+					
+					if(isDataChange)
+					{
+						acPageData.removeAll();
+						
+						displayChangeData();
+						
+						isDataChange = false; 
+					}
+				}
+			}
+			
+			
+			/**
+			 * 加载数据
+			*/
+			private function loadData(pageNum:int):void
+			{
+				if(pageNum>=0 && pageNum<totalPage)   
+				{
+					acPageData.removeAll();
+					
+				}
+				
+				if(currentPage!=0)
+				{
+					lbtnPrevious.source = "com/mapUni/UtilComponent/pageNavigation/assets/page-prev.gif";
+					lbtnFirst.source = "com/mapUni/UtilComponent/pageNavigation/assets/page-first.gif";
+				}
+				else
+				{
+					lbtnPrevious.source = "com/mapUni/UtilComponent/pageNavigation/assets/page-prev-disabled.gif";
+					lbtnFirst.source = "com/mapUni/UtilComponent/pageNavigation/assets/page-first-disabled.gif";
+				}
+				
+				if(totalPage>currentPage+1)
+				{
+					lbtnLast.source = "com/mapUni/UtilComponent/pageNavigation/assets/page-last.gif";
+					lbtnNext.source = "com/mapUni/UtilComponent/pageNavigation/assets/page-next.gif";
+				}
+				else
+				{
+					lbtnLast.source = "com/mapUni/UtilComponent/pageNavigation/assets/page-last-disabled.gif";
+					lbtnNext.source = "com/mapUni/UtilComponent/pageNavigation/assets/page-next-disabled.gif";
+				}
+				
+				 
+				
+				displayPageData();
+				
+				if(isDataChange)
+				{
+					displayChangeData();
+					
+					isDataChange = false; 
+				}
+			}
+			
+			
+			/**
+			 * 派发翻页事件
+			*/
+			private function displayPageData():void
+			{
+				pageCurrentData = _pageData;
+				
+				this.dispatchEvent(new UE_PageNavigationEvent(UE_PageNavigationEvent.PAGE_CHANGE, _pageData));
+			}
+			
+			
+			private function displayChangeData():void
+			{
+				this.dispatchEvent(new UE_PageNavigationEvent(UE_PageNavigationEvent.Data_CHANGE, _pageData));
+			}
+			
+			private function loadDataPage(pageNum:int):void
+			{
+				currentPage=pageNum;
+				ViewerContainer.dispatchEvent(new AppEvent(AppEvent.UC_Page, currentPage));
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<mx:HBox id="pageControl" includeInLayout="true" visible="true" cornerRadius="0" borderStyle="solid" horizontalAlign="center" verticalAlign="middle" width="100%">
+		<mx:Text text="{'第'+(totalPage>0?(currentPage+1):0)+'页/共'+totalPage+'页'+'  共'+(totalPage_lnydzf)+'条'}" fontSize="12" color="black"/>    
+		<mx:Image id="lbtnFirst" toolTip="首页" source="assets/images/yutu/page-first.gif" click="loadDataPage(0)" enabled="{lbtnPrevious.enabled}" width="16" height="16" buttonMode="true"/>
+		<mx:Image id="lbtnPrevious" toolTip="上一页" source="assets/images/yutu/page-prev.gif" click="loadDataPage(currentPage-1)" enabled="{currentPage!=0?true:false}" width="16" height="16" buttonMode="true"/>
+		<mx:Image id="lbtnNext" toolTip="下一页" source="assets/images/yutu/page-next.gif" click="loadDataPage(currentPage+1)" enabled="{totalPage>(currentPage+1)?true:false}" width="16" height="16" buttonMode="true"/>
+		<mx:Image id="lbtnLast" toolTip="尾页" source="assets/images/yutu/page-last.gif" click="loadDataPage(totalPage-1)" enabled="{lbtnNext.enabled}" width="16" height="16" buttonMode="true"/>
+		<mx:NumericStepper id="nsPageNum" stepSize="1" minimum="1" maximum="{totalPage}" enabled="{lbtnJump.enabled}" cornerRadius="0"/>
+		<mx:Image id="lbtnJump" toolTip="跳转" source="assets/images/yutu/page_goto.gif" click="loadDataPage(nsPageNum.value-1)" enabled="{totalPage>1?true:false}" buttonMode="true"/>
+	</mx:HBox>
+	
+</s:Group>

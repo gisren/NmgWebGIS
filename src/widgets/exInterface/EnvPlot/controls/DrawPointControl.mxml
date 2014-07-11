@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 initialize="init()"
+		 >
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.Map;
+			import com.esri.ags.events.DrawEvent;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.symbols.PictureFillSymbol;
+			import com.esri.ags.symbols.PictureMarkerSymbol;
+			import com.esri.ags.symbols.Symbol;
+			import com.esri.ags.tools.DrawTool;
+			import com.esri.ags.tools.EditTool;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			
+			import widgets.exInterface.EnvPlot.PlanUtil;
+			import widgets.exInterface.EnvPlot.PlotEvent;
+			
+			private var map:Map = new Map();
+			
+			private var drawTool:DrawTool = new DrawTool();
+			private var editTool:EditTool = new EditTool();
+			
+			private var drawPicLayer:GraphicsLayer = new GraphicsLayer();
+			private var activatePointSymbol:Symbol = new Symbol();
+			
+			private var currEditPoint:Graphic = new Graphic();
+			
+			
+			/**
+			 * 初始化 
+			*/
+			private function init():void
+			{
+				ViewerContainer.addEventListener(PlotEvent.PLOT_MAP_LOADED, onMapLoad);
+				ViewerContainer.addEventListener(PlotEvent.CLEAR_ALL_PLOT, ClearLayer);
+				ViewerContainer.addEventListener(PlotEvent.CLEAR_SELECT_POINT, ClearPoint);
+			}
+			
+			
+			/**
+			 * 监听地图加载 
+			*/
+			private function onMapLoad(event:PlotEvent):void
+			{
+				map = event.data as Map;
+				
+				map.addLayer(drawPicLayer);
+				
+				map.addEventListener(MouseEvent.CLICK, onMapClick);
+				
+				editTool.map = map;
+				drawTool.map = map;
+				drawTool.addEventListener(DrawEvent.DRAW_END, onDrawEnd);
+			}
+			
+			
+			/**
+			 * 清空图层 
+			*/
+			private function ClearLayer(event:PlotEvent):void
+			{
+				drawTool.deactivate();
+				editTool.deactivate();
+				drawPicLayer.clear();
+				currEditPoint = null;
+			}
+			
+			/**
+			 * 清除当前选中标绘 
+			*/
+			private function ClearPoint(event:PlotEvent):void
+			{
+				editTool.deactivate();
+				drawPicLayer.remove(currEditPoint);
+				currEditPoint = null;
+			}
+			
+			
+			/**
+			 * 监听地图点击 
+			*/
+			private function onMapClick(event:MouseEvent):void
+			{
+//				editTool.deactivate();
+//				currEditPoint = null;
+			}
+			
+			
+			/**
+			 * 绘制图标
+			*/
+			private function activateDrawTool(event:MouseEvent):void
+			{
+				var selectedDrawingIcon:Image = Image(event.currentTarget);
+				var imageUrl:String = selectedDrawingIcon.source as String;
+				activatePointSymbol = new PictureMarkerSymbol(imageUrl);
+//				activatePointSymbol = new PictureFillSymbol(imageUrl,30,30,1,1);
+				
+				drawTool.deactivate();
+				drawTool.activate(DrawTool.MAPPOINT);
+				
+//				drawTool.activate(DrawTool.EXTENT);
+			}
+			
+			
+			/**
+			 * 监听绘制完毕 
+			*/
+			private function onDrawEnd(event:DrawEvent):void
+			{
+				drawTool.deactivate();
+				
+				var graphic:Graphic = event.graphic;
+				graphic.symbol = activatePointSymbol;
+				graphic.addEventListener(MouseEvent.CLICK, onPicClick);
+				
+				drawPicLayer.add(graphic);
+				
+				editTool.activate(EditTool.MOVE|EditTool.EDIT_VERTICES,[graphic]);
+				
+				ViewerContainer.dispatchEvent(new PlotEvent(PlotEvent.POINT_SELECTED, graphic));
+				
+				currEditPoint = graphic;
+			}
+			
+			
+			/**
+			 * 监听符号的鼠标点击
+			 * 编辑目标点 
+			*/
+			private function onPicClick(event:MouseEvent):void
+			{
+				var graphic:Graphic = event.currentTarget as Graphic;
+				editTool.activate(EditTool.MOVE|EditTool.EDIT_VERTICES,[graphic]);
+				
+				currEditPoint = graphic;
+			}
+			
+			
+			/**
+			 * 保存标绘 
+			 */
+			private function savePolt():void
+			{
+				var xml:String = PlanUtil.serializePlan(drawPicLayer);
+			}
+			
+			private var xml:String = "";
+			
+			/**
+			 * 重新加载标绘 
+			 */
+			private function reLoadPlot():void
+			{
+				PlanUtil.deserializePlan(drawPicLayer, xml);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<mx:Grid width="100%" height="100%" paddingBottom="10" paddingLeft="10" paddingRight="10"
+			 paddingTop="10">
+		<mx:GridRow>
+			<mx:GridItem>
+				<mx:Image buttonMode="true" click="activateDrawTool(event)"
+						  source="assets/yutuImages/widgetIcon/2_buffer.png" toolTip="缓冲图标" 
+						  useHandCursor="true"/>
+			</mx:GridItem>
+			<mx:GridItem>
+				<mx:Image buttonMode="true" click="activateDrawTool(event)"
+						  source="assets/yutuImages/widgetIcon/2_clear.png" toolTip="清空图标"
+						  useHandCursor="true"/>
+			</mx:GridItem>
+			<mx:GridItem>
+				<mx:Image buttonMode="true" click="activateDrawTool(event)"
+						  source="assets/yutuImages/widgetIcon/2_draw.png" toolTip="绘制图标"
+						  useHandCursor="true"/>
+			</mx:GridItem>
+		</mx:GridRow>
+		<mx:GridRow>
+			<mx:GridItem>
+				<mx:Image buttonMode="true" click="activateDrawTool(event)"
+						  source="assets/yutuImages/widgetIcon/2_layers.png" toolTip="图层图标"
+						  useHandCursor="true"/>
+			</mx:GridItem>
+			<mx:GridItem>
+				<mx:Image buttonMode="true" click="activateDrawTool(event)"
+						  source="assets/yutuImages/widgetIcon/2_screenshot.png" toolTip="截屏图标"
+						  useHandCursor="true"/>
+			</mx:GridItem>
+			<mx:GridItem>
+				<mx:Image buttonMode="true" click="activateDrawTool(event)"
+						  source="assets/yutuImages/widgetIcon/2_search.png" toolTip="查询图标"
+						  useHandCursor="true"/>
+			</mx:GridItem>
+		</mx:GridRow>
+		<mx:GridRow>
+			<mx:GridItem>
+				<s:Button label="保存" click="savePolt()"/>
+			</mx:GridItem>
+			<mx:GridItem>
+				<s:Button label="重新加载" click="reLoadPlot()"/>
+			</mx:GridItem>
+		</mx:GridRow>
+	</mx:Grid>	
+	
+</s:Group>

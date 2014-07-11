@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2012 中科宇图天下科技有限公司 - 环保事业部
+//
+// 统计分析
+// 
+// 
+// 
+// Author：
+// Date：
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:esri="http://www.esri.com/2008/ags"
+				   xmlns:viewer="com.esri.viewer.*"
+				   widgetConfigLoaded="configLoad()" 
+				   xmlns:Components="widgets.exInterface.StatisticalAnalysis.Components.*" 
+				   >
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.ViewerContainer;
+			import com.esri.viewer.WidgetStates;
+			
+			import flash.utils.setTimeout;
+			
+			import mx.managers.PopUpManager;
+			
+			import widgets.exInterface.StatisticalAnalysis.Components.StatChart;
+			import widgets.exInterface.StatisticalAnalysis.Control.StatDataContorl;
+			import widgets.exInterface.StatisticalAnalysis.Control.StatEvent;
+			import widgets.exInterface.StatisticalAnalysis.Control.StatMapContorl;
+			
+			private function configLoad():void
+			{
+				ViewerContainer.addEventListener(StatEvent.STAT_WIDGET_PARAM_GET, onGetWidgetParam);
+				
+				setWidgetTemplate();
+				
+				setControlParam();
+			}	
+			
+			
+			private function setControlParam():void
+			{
+				new StatDataContorl();
+				new StatMapContorl();
+				
+				var chartWindow:StatChart = new StatChart();
+				chartWindow.visible = false;
+				PopUpManager.addPopUp(chartWindow, this);
+				
+				itemList.ConfigXML = configXML;
+			}
+			
+			
+			private function setWidgetTemplate():void
+			{
+				wTemplate.enableResizeButton = false;
+			}
+			
+			
+			/**
+			 * 监听：获取模块中的参数 
+			 */
+			private function onGetWidgetParam(event:StatEvent):void
+			{
+				if(this.hasOwnProperty(event.data.toString()))
+				{
+					event.callback(this[event.data.toString()]);
+				}
+			}
+			
+			
+			protected function wTemplate_openHandler(event:Event):void
+			{
+				ViewerContainer.dispatchEvent(new StatEvent(StatEvent.STAT_MAP_VISIBLE, true));
+				ViewerContainer.dispatchEvent(new StatEvent(StatEvent.STAT_WINDOW_CHART_VISIBLE, true));
+			}
+			
+			
+			private function wTemplate_closedHandler(event:Event):void
+			{
+				ViewerContainer.dispatchEvent(new StatEvent(StatEvent.STAT_MAP_VISIBLE, false));
+				ViewerContainer.dispatchEvent(new StatEvent(StatEvent.STAT_WINDOW_CHART_VISIBLE, false));
+			}
+			
+
+		]]>
+	</fx:Script>
+	
+	<fx:Style>
+		@namespace s "library://ns.adobe.com/flex/spark";
+		@namespace mx "library://ns.adobe.com/flex/mx";
+		@namespace esri "http://www.esri.com/2008/ags";
+		@namespace Control "widgets.proWorkBar.StatisticalAnalysis.Control.*";
+		
+		Control|StatChartContent
+		{
+			skin-class: ClassReference("widgets.exInterface.StatisticalAnalysis.Skin.StatChartContentSkin");
+		}
+		
+		/* mx|DataGrid
+		{
+			alternatingItemColors: #5790C2, #4471a0;
+		} */
+		
+	</fx:Style>
+	
+	
+	<viewer:WidgetTemplate id="wTemplate"
+						   width="300" height="310" 
+						   open="wTemplate_openHandler(event)"
+						   closed="wTemplate_closedHandler(event)"
+						   >
+		<Components:StatList id="itemList" 
+							 width="100%" height="100%" 
+							 />
+								  
+	</viewer:WidgetTemplate>
+		
+		
+</viewer:BaseWidget>

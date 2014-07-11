@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 width="250" height="150"
+		 >
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.controls.LinkButton;
+			
+			[Bindable]
+			public var title:String = "";
+			
+			[Bindable]
+			public var content:String = "";
+			
+			public function set linkArray(value:Array):void
+			{
+				if(value && value.length)
+				{
+					for(var i:int=0; i<value.length; i++)
+					{
+						var linkObj:Object = value[i];
+						
+						var linkButton:LinkButton = new LinkButton();
+						linkButton.label = linkObj.label;
+						linkButton.data = linkObj;
+						linkButton.setStyle("textDecoration","underline");
+						linkButton.setStyle("color",0xCEE7F4);
+						linkButton.setStyle("fontSize", 13);
+						linkButton.addEventListener(MouseEvent.CLICK, onLinkButtonClick);
+						
+						if( i < 4 )
+						{
+							linkGroup.addElement(linkButton);
+						}
+						else
+						{
+							linkGroup2.addElement(linkButton);
+						}
+					}
+				}
+			}
+			
+			private function onLinkButtonClick(event:MouseEvent):void
+			{
+				var linkButton:LinkButton = event.currentTarget as LinkButton;
+				var callbackName:String = linkButton.data.callback;
+				var callbackParam:Array = linkButton.data.parameter;
+				
+				ExternalInterface.call(callbackName, callbackParam);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:VGroup width="100%" height="100%" 
+			  paddingLeft="10" paddingRight="10"
+			  >
+		<s:Label id="titleLabel" width="230" height="15" fontSize="13" text="{title}" verticalAlign="top"/>
+		<mx:HRule width="100%"   chromeColor="#FAF7F7"/>
+		<s:TextArea width="100%" lineHeight="16" height="100%" text="{content}" 
+					mouseChildren="false" mouseEnabled="false"
+					borderVisible="false"  contentBackgroundAlpha="0"
+					/>
+		<s:HGroup id="linkGroup" width="100%" gap="0"/>
+		<s:HGroup id="linkGroup2" width="100%" gap="0"/>
+	</s:VGroup>
+	
+</s:Group>

@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 creationComplete="init()"
+		 >
+	<fx:Script>
+		<![CDATA[
+			import mx.charts.ChartItem;
+			import mx.charts.series.LineSeries;
+			import mx.collections.ArrayCollection;
+			import mx.graphics.IFill;
+			import mx.graphics.SolidColor;
+			
+			[Bindable]
+			public var V_ChartData:ArrayCollection = new ArrayCollection();
+			
+			[Bindable]
+			public var V_title:String = "";
+			
+			[Bindable]
+			public var V_xField:String = "";
+			
+			[Bindable]
+			public var V_seriesField:String = "";
+			
+			public var V_dataField:String = "";
+			public var V_nameField:String = "";
+			public var V_colorField:String = "";
+			public var V_toolTipField:String = "";
+			
+			
+			
+			private function init():void
+			{
+				resetData();
+				
+				createSeriesList();
+			}
+			
+			
+			/**
+			 * 整理数据
+			 */
+			private function resetData():void
+			{
+				for(var i:int=0; i<V_ChartData.length; i++)
+				{
+					var itemObj:Object = V_ChartData[i];
+					
+					var seriesData:Array = itemObj[V_seriesField];
+					
+					for(var n:int=0; n<seriesData.length; n++)
+					{
+						var seriesObj:Object = seriesData[n];
+						
+						var data:String = seriesObj[V_dataField];
+						itemObj["data" + n.toString()] = data;
+						
+						var color:String = seriesObj[V_colorField];
+						itemObj["color" + n.toString()] = color;
+						
+						/* 
+						lxl 20120218 将名称和提示信息的数据也提取到上一级中
+						
+						var name:String = seriesObj[V_nameField];
+						itemObj["name" + n.toString()] = name;
+						
+						var toolTip:String = seriesObj[V_toolTipField];
+						itemObj["toolTip" + n.toString()] = toolTip;
+						*/
+						
+					}
+				}
+			}
+			
+			
+			/**
+			 * 组织显示序列
+			 */
+			private function createSeriesList():void
+			{
+				var seriesArray:Array = new Array();
+				
+				/* 
+				根据第一组的序列数添加序列
+				*/
+				var seriesData:Array = V_ChartData[0][V_seriesField];
+				
+				for(var n:int=0; n<seriesData.length; n++)
+				{
+					var seriesObj:Object = seriesData[n];
+					
+					var lineSeries:LineSeries = new LineSeries();
+					
+					lineSeries.yField = "data" + n.toString();
+					
+					lineSeries.displayName = seriesObj[V_nameField];
+					
+					//lxl 20120218 鼠标移动到图标上时鼠标旁边的提示信息
+					//columnSeries.toolTip = seriesObj[V_toolTipField];
+					
+					/*
+					设置折线样式 
+					*/
+					var stroke:SolidColorStroke = new SolidColorStroke(seriesObj[V_colorField], 2);
+					lineSeries.setStyle("form","curve");
+					lineSeries.setStyle("lineStroke", stroke);
+					
+					seriesArray.push(lineSeries);
+				}
+				
+				chart.series = seriesArray;
+			}
+			
+			
+			/**
+			 * 自定义单列颜色  
+			 */
+			private function colorFunction(element:ChartItem,index:Number):IFill
+			{
+				var color:Number = element.item["color0"];
+				
+				return new SolidColor(color, 1);
+			}
+			
+			
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Style>
+		@namespace s "library://ns.adobe.com/flex/spark";
+		@namespace mx "library://ns.adobe.com/flex/mx";
+		
+		.lineSeries
+		{
+			form:curve;
+		}
+		
+	</fx:Style>
+		
+		
+	<mx:LineChart id="chart" color="0x323232" height="{this.height*3/4}" width="{this.width}"
+				  showDataTips="true" dataProvider="{V_ChartData}">
+		
+		<mx:horizontalAxis>
+			<mx:CategoryAxis categoryField="{V_xField}"/>
+		</mx:horizontalAxis>
+		
+		<!--<mx:series>
+			<mx:LineSeries yField="{V_yField}" form="curve" />
+		</mx:series>-->
+		
+		<mx:horizontalAxisRenderer>
+			<mx:AxisRenderer visible="true"> 
+				<mx:axisStroke>
+					<mx:SolidColorStroke caps="square" color="#09C81D" weight="4"/>
+				</mx:axisStroke>
+			</mx:AxisRenderer>
+		</mx:horizontalAxisRenderer>
+		
+		<mx:verticalAxisRenderer>
+			<mx:AxisRenderer visible="true">
+				<mx:axisStroke>
+					<mx:SolidColorStroke caps="square" color="#09C81D" weight="4"/>
+				</mx:axisStroke>
+			</mx:AxisRenderer>
+		</mx:verticalAxisRenderer>
+	</mx:LineChart>
+		
+</s:Group>

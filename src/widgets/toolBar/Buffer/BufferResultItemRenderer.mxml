@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     ////////////////////////////////////////////////////////////////////////////////
+     //
+     // Copyright (c) 2010 ESRI
+     //
+     // All rights reserved under the copyright laws of the United States.
+     // You may freely redistribute and use this software, with or
+     // without modification, provided you include the original copyright
+     // and use restrictions.  See use restrictions in the file:
+     // <install location>/License.txt
+     //
+     ////////////////////////////////////////////////////////////////////////////////
+-->
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009"
+                xmlns:s="library://ns.adobe.com/flex/spark"
+                xmlns:mx="library://ns.adobe.com/flex/mx"
+                autoDrawBackground="false"
+                click="itemrenderer_clickHandler(event)"
+                dataChange="itemrenderer_dataChangeHandler(event)"
+                minHeight="30"
+				mouseOver="itemrenderer_mouseOverHandler(event)"
+				mouseOut="itemrenderer_mouseOutHandler(event)"
+				xmlns:esri="http://www.esri.com/2008/ags"
+				>
+
+    <fx:Script>
+        <![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.symbols.CompositeSymbol;
+			import com.esri.ags.symbols.PictureMarkerSymbol;
+			import com.esri.ags.symbols.Symbol;
+			import com.esri.ags.symbols.TextSymbol;
+			import com.mapUni.BaseClass.InfoWindow.InfoResult;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+
+            private const SEARCH_RESULT_CLICK:String = "searchResultClick";
+
+            private const SEARCH_RESULT_MOUSE_OVER:String = "searchResultMouseOver";
+
+            private const SEARCH_RESULT_MOUSE_OUT:String = "searchResultMouseOut";
+
+            [Bindable]
+            private var searchResult:InfoResult;
+
+            private var lastResultSymbol:Symbol;
+			
+			[Bindable]
+			private var normalPicUrl:String = "";
+			
+			[Bindable]
+			public var hoveredPicUrl:String = "";
+			
+			
+
+            private function itemrenderer_dataChangeHandler(event:FlexEvent):void
+            {
+                searchResult = data as InfoResult;
+
+                if (searchResult && searchResult.symbol)
+                {
+                    if (lastResultSymbol !== searchResult.symbol)
+                    {
+						var comSymbol:CompositeSymbol = searchResult.symbol as CompositeSymbol;
+						
+						var symbolAC:ArrayCollection = comSymbol.symbols as ArrayCollection;
+						
+						for(var i:int=0; i<symbolAC.length; i++)
+						{
+							if(symbolAC[i] is PictureMarkerSymbol)
+							{
+								normalPicUrl = PictureMarkerSymbol(symbolAC[i]).source.toString();
+								hoveredPicUrl = searchResult.primaryCode;
+							}
+							if(symbolAC[i] is TextSymbol)
+							{
+								symbolLabel.text = TextSymbol(symbolAC[i]).text;
+								symbolLabel.setStyle("color", TextSymbol(symbolAC[i]).textFormat.color);
+							}
+						}
+						
+                    }
+                }
+            }
+
+            private function itemrenderer_clickHandler(event:MouseEvent):void
+            {
+                dispatchEvent(new Event(SEARCH_RESULT_CLICK, true)); // bubbles
+            }
+
+            private function itemrenderer_mouseOverHandler(event:MouseEvent):void
+            {
+                dispatchEvent(new Event(SEARCH_RESULT_MOUSE_OVER, true)); // bubbles
+            }
+
+            private function itemrenderer_mouseOutHandler(event:MouseEvent):void
+            {
+                dispatchEvent(new Event(SEARCH_RESULT_MOUSE_OUT, true)); // bubbles
+            }
+
+            private function showLink(event:MouseEvent):void
+            {
+                event.stopImmediatePropagation(); // don't dispatch SEARCH_RESULT_CLICK since we don't want to zoom to feature
+                navigateToURL(new URLRequest(searchResult.link));
+            }
+			
+        ]]>
+    </fx:Script>
+
+    <s:states>
+        <s:State name="normal"/>
+        <s:State name="hovered"/>
+    </s:states>
+
+    <!-- border/background rectangle -->
+    <s:Rect left="0" right="0" top="0" bottom="0"
+            radiusX="4"
+            radiusY="4">
+        <s:stroke>
+            <mx:SolidColorStroke alpha="{getStyle('borderAlpha')}"
+                                 color="{getStyle('borderColor')}"
+                                 weight="1"/>
+        </s:stroke>
+        <s:fill>
+            <mx:SolidColor alpha="0.3"
+                           alpha.hovered="0.8"
+                           color.hovered="{getStyle('rollOverColor')}"
+                           color.normal="{getStyle('contentBackgroundColor')}"/>
+        </s:fill>
+    </s:Rect>
+
+    <s:HGroup width="100%" height="100%"
+              paddingBottom="3"
+              paddingLeft="3"
+              paddingRight="3"
+              paddingTop="3"
+              verticalAlign="middle">
+		<s:Group width="30" height="30" >
+			<mx:Image id="symbolImage" width="100%" horizontalAlign="center" 
+					  source.normal="{normalPicUrl}" source.hovered="{hoveredPicUrl}"/>
+			<s:Label id="symbolLabel"  y="6"  width="100%"  textAlign="center"/>
+		</s:Group>
+        <s:VGroup width="100%" height="100%"
+                  verticalAlign="middle"
+				  gap="8"
+				  >
+			<mx:Spacer height="0" />
+            <s:Label width="100%"
+                     fontWeight="bold"
+                     maxDisplayedLines="1"
+                     text="{'名称：' + searchResult.title}"/>
+            <s:Label width="100%"
+                     fontWeight="normal"
+                     maxDisplayedLines="-1"
+                     text="{'类别：' + searchResult.layerName}"/>
+			<mx:Spacer height="0" />
+        </s:VGroup>
+    </s:HGroup>
+</s:ItemRenderer>

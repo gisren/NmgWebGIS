@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 xmlns:controls="widgets.exInterface.EnvPlot.controls.*" xmlns:flexlib="com.google.flexlib.containers.*" 
+		  height="300">	
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.ViewerContainer;
+			
+			import widgets.exInterface.EnvPlot.PlotEvent;
+			
+			[Bindable]
+			private var plotSelect:Boolean = true; 
+			
+			[Bindable] private var wTemplateHeight:int=353-215;
+			private var ws1Height:int=195;
+			private var ws2Height:int=152;
+
+		]]>
+	</fx:Script>
+	
+	
+	<s:VGroup width="100%" height="300">
+			
+			<s:Group height="141" width="200">		
+				<controls:DrawControl id="draw" width="100%" height="116" x="0"/>
+			</s:Group>
+		
+		<s:Group>			
+			<mx:TabNavigator id="plotSymbolParam"  width="200" height="151" creationPolicy="All" visible="{plotSelect}" includeInLayout="{plotSelect}">
+				<s:NavigatorContent label="填充" width="100%" height="100%">
+					<controls:FillSymbolControl x="10"/>
+				</s:NavigatorContent>
+				<s:NavigatorContent label="轮廓线" width="100%" height="100%">
+					<controls:LineSymbolControl left="10" top="0" height="108" width="188"/>
+				</s:NavigatorContent>
+			</mx:TabNavigator>
+		</s:Group>
+		
+		
+	</s:VGroup>
+	
+</s:Group>

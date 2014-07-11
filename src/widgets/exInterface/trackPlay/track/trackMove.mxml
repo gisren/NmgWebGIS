@@ -1,0 +1,758 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:esri="http://www.esri.com/2008/ags"
+				   xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:viewer="com.esri.viewer.*"
+				   widgetConfigLoaded="init()"
+				   xmlns:trackMove="widgets.trackMove.*"
+				   >
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.Map;
+			import com.esri.ags.geometry.Extent;
+			import com.esri.ags.geometry.Geometry;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.geometry.Polyline;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.symbols.PictureMarkerSymbol;
+			import com.esri.ags.symbols.SimpleLineSymbol;
+			import com.esri.ags.symbols.SimpleMarkerSymbol;
+			import com.esri.ags.utils.DateUtil;
+			import com.esri.ags.utils.JSON;
+			import com.esri.ags.utils.StringUtil;
+			import com.esri.ags.webmap.PopUpRenderer;
+			import com.esri.ags.webmap.supportClasses.PopUpInfo;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			import com.esri.viewer.components.trackInfoWindow;
+			import com.esri.viewer.utils.Hashtable;
+			
+			import flash.utils.setTimeout;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.ListEvent;
+			import mx.formatters.DateBase;
+			import mx.formatters.DateFormatter;
+			import mx.formatters.NumberFormatter;
+			import mx.managers.CursorManager;
+			
+			private var HistoryPointGraphicsLayer:GraphicsLayer = new GraphicsLayer();
+			
+			private var HistoryLineGraphicsLayer:GraphicsLayer = new GraphicsLayer();
+			
+			private var TimerHistory:Timer = new Timer(0);
+			
+			private var state:int;//当前状态,0:停止,1:回放中,2:暂停
+			
+			private var dataString:String=null;
+			
+			//当前车辆信息：名称，id
+			private var curCarName:String;
+			private var curCarId:String;
+			private var pointsNum:int=0;
+			/**
+			 * 事件：初始化模块
+			 */
+			private function init():void
+			{
+				ViewerContainer.addEventListener(AppEvent.DATA_SENT,onDataSent);
+				
+				fetchShareDataByKey("trackMove");
+				
+				
+				var functionName:String = configXML.setDataASfunctionName;
+				
+				ExternalInterface.addCallback(functionName,onResult_getRaisHistoryPlace);
+				
+				map.addLayer(HistoryPointGraphicsLayer);
+				map.addLayer(HistoryLineGraphicsLayer);
+				
+				hasInited=true;
+				
+				state=0;
+			}
+			
+			
+			/**
+			 * 事件：获取车辆数据 
+			 */
+			private function onDataSent(event:AppEvent):void
+			{
+				if(event.data.key != "trackMove")
+					return;
+				
+				ViewerContainer.removeEventListener(AppEvent.DATA_SENT,onDataSent);	
+				carList.dataProvider = null;
+				var dataAry:Array = new Array();
+				
+				if(event.data.data)
+				{
+					dataAry = JSON.decode(event.data.data);
+					carList.dataProvider = new ArrayCollection(dataAry);
+					
+					var field:String = configXML.carListLabelField;
+					carList.labelField = field;
+					carList.selectedIndex=0;
+				}
+				var d:Date=new Date();
+				d.date=d.date-1;
+				selectedTime.beginTime.setDateTimeOfDateFormat(d);
+			}
+			
+			
+			/**
+			 * 事件：点击历史轨迹回放开始按钮
+			 * 功能：调取所选择的时间段内的历史点信息
+			 */
+			protected function startButtonHistory_clickHandler(event:MouseEvent):void
+			{
+				
+				//验证查询条件
+				if(!checkInput())return;
+				pauseButtonHistory.label="暂停";
+				//如果正在回放就不进行新的回放
+				
+				if(state>0)return;
+				map.infoWindow.content=null;
+				HistoryPointGraphicsLayer.clear();
+				
+				HistoryLineGraphicsLayer.clear();
+				
+				datagridHistory.dataProvider = null;
+				state=1;
+				
+				//鼠标忙碌光标
+				CursorManager.setBusyCursor();
+				
+				var selectedObject:Object = carList.selectedItem as Object;
+				var field:String = configXML.carListIdField;
+				var carId:String = selectedObject[field];
+				//设置当前车辆信息
+				curCarId=carId;
+				var labelField:String=configXML.carListLabelField;
+				curCarName=selectedObject[labelField];
+				//end 
+				
+				var startTime:Date = selectedTime.beginTime.getDateTimeOfDateFormat();
+				var endTime:Date = selectedTime.endTime.getDateTimeOfDateFormat();
+				
+				var functionName:String = configXML.getDataJSfunctionName;
+				
+				var formatter:DateFormatter=new DateFormatter();
+				formatter.formatString="YYYY-MM-DD-JJNNSS";
+				
+				//测试
+//				var str:String = "[{\"SIM_ID\": \"15101167300\",\"ID\": \"554\",\"Name\": \"猎豹骑兵\",\"CarNo\": \"辽AKW570\",\"CarType\": \"环境应急工作车\",\"DriverNameA\": \"仇宝泉\",\"TellPhoneA\": \"25365928\",\"X\": \"123.412382541081\",\"Y\": \"41.852111857621\",\"LocatedTime\": \"2012-4-29 11:44:46\",\"CarSpeed\": \"230\",\"CarDirection\": \"123\",\"LocatedMsg\": \"沈阳市环境监察支队\"},{\"SIM_ID\": \"15101167300\",\"ID\": \"554\",\"Name\": \"猎豹骑兵\",\"CarNo\": \"辽AKW570\",\"CarType\": \"环境应急工作车\",\"DriverNameA\": \"仇宝泉\",\"TellPhoneA\": \"25365928\",\"X\": \"123.412909579366\",\"Y\": \"41.8479708425204\",\"LocatedTime\": \"2012-4-29 12:44:46\",\"CarSpeed\": \"231\",\"CarDirection\": \"11\",\"LocatedMsg\": \"沈阳市环境监察支队\"},{\"SIM_ID\": \"15101167300\",\"ID\": \"554\",\"Name\": \"猎豹骑兵\",\"CarNo\": \"辽AKW570\",\"CarType\": \"环境应急工作车\",\"DriverNameA\": \"仇宝泉\",\"TellPhoneA\": \"25365928\",\"X\": \"123.41293757762\",\"Y\": \"41.8448119684032\",\"LocatedTime\": \"2012-4-29 13:00:00\",\"CarSpeed\": \"232\",\"CarDirection\": \"122\",\"LocatedMsg\": \"沈阳市环境监察支队\"},{\"SIM_ID\": \"15101167300\",\"ID\": \"554\",\"Name\": \"猎豹骑兵\",\"CarNo\": \"辽AKW570\",\"CarType\": \"环境应急工作车\",\"DriverNameA\": \"仇宝泉\",\"TellPhoneA\": \"25365928\",\"X\": \"123.413170372087\",\"Y\": \"41.8418632384809\",\"LocatedTime\": \"2012-4-29 14:00:00\",\"CarSpeed\": \"200\",\"CarDirection\": \"124\",\"LocatedMsg\": \"沈阳市环境监察支队\"},{\"SIM_ID\": \"15101167300\",\"ID\": \"554\",\"Name\": \"猎豹骑兵\",\"CarNo\": \"辽AKW570\",\"CarType\": \"环境应急工作车\",\"DriverNameA\": \"仇宝泉\",\"TellPhoneA\": \"25365928\",\"X\": \"123.413480764711\",\"Y\": \"41.8396128919613\",\"LocatedTime\": \"2012-4-29 15:00:00\",\"CarSpeed\": \"230\",\"CarDirection\": \"12\",\"LocatedMsg\": \"沈阳市环境监察支队\"},{\"SIM_ID\": \"15101167300\",\"ID\": \"554\",\"Name\": \"猎豹骑兵\",\"CarNo\": \"辽AKW570\",\"CarType\": \"环境应急工作车\",\"DriverNameA\": \"仇宝泉\",\"TellPhoneA\": \"25365928\",\"X\": \"123.413348980652\",\"Y\": \"41.8395121786093\",\"LocatedTime\": \"2012-4-29 16:00:00\",\"CarSpeed\": \"240\",\"CarDirection\": \"123\",\"LocatedMsg\": \"沈阳市环境监察支队\"},{\"SIM_ID\": \"15101167300\",\"ID\": \"554\",\"Name\": \"猎豹骑兵\",\"CarNo\": \"辽AKW570\",\"CarType\": \"环境应急工作车\",\"DriverNameA\": \"仇宝泉\",\"TellPhoneA\": \"25365928\",\"X\": \"123.413363161742\",\"Y\": \"41.8391963582764\",\"LocatedTime\": \"2012-4-29 18:00:00\",\"CarSpeed\": \"225\",\"CarDirection\": \"123\",\"LocatedMsg\": \"沈阳市环境监察支队\"},{\"SIM_ID\": \"15101167300\",\"ID\": \"554\",\"Name\": \"猎豹骑兵\",\"CarNo\": \"辽AKW570\",\"CarType\": \"环境应急工作车\",\"DriverNameA\": \"仇宝泉\",\"TellPhoneA\": \"25365928\",\"X\": \"123.413391842845\",\"Y\": \"41.8390123212028\",\"LocatedTime\": \"2012-4-29 19:00:00\",\"CarSpeed\": \"248\",\"CarDirection\": \"127\",\"LocatedMsg\": \"沈阳市环境监察支队\"},{\"SIM_ID\": \"15101167300\",\"ID\": \"554\",\"Name\": \"猎豹骑兵\",\"CarNo\": \"辽AKW570\",\"CarType\": \"环境应急工作车\",\"DriverNameA\": \"仇宝泉\",\"TellPhoneA\": \"25365928\",\"X\": \"123.413408573488\",\"Y\": \"41.8386322965964\",\"LocatedTime\": \"2012-4-29 20:00:00\",\"CarSpeed\": \"243\",\"CarDirection\": \"112\",\"LocatedMsg\": \"沈阳市环境监察支队\"},{\"SIM_ID\": \"15101167300\",\"ID\": \"554\",\"Name\": \"猎豹骑兵\",\"CarNo\": \"辽AKW570\",\"CarType\": \"环境应急工作车\",\"DriverNameA\": \"仇宝泉\",\"TellPhoneA\": \"25365928\",\"X\": \"123.4149166487288\",\"Y\": \"41.83633779528045\",\"LocatedTime\": \"2012-4-29 21:00:00\",\"CarSpeed\": \"260\",\"CarDirection\": \"145\",\"LocatedMsg\": \"沈阳市环境监察支队\"}]";
+//				onResult_getRaisHistoryPlace(str);
+				
+				ExternalInterface.call(functionName,carId,formatter.format(startTime),formatter.format(endTime));
+			}
+			
+			
+			/**
+			 * 事件：提供JS调用接口，传递轨迹数据
+			 */
+			private function getData():void
+			{
+				var functionName:String = configXML.setDataASfunctionName;
+				
+				ExternalInterface.addCallback(functionName,onResult_getRaisHistoryPlace);
+			}
+			
+			
+			/**
+			 * 事件：成功调取历史轨迹的点集合
+			 * 功能：实现放射源的轨迹移动
+			 */
+			private function onResult_getRaisHistoryPlace(data:String):void
+			{
+				
+				dataString=data;
+				
+				CursorManager.removeBusyCursor();
+				if(!data || data=="")
+				{
+					Alert.show("该时间段没有数据。");
+					return;
+				}
+				var dataAry:Array = JSON.decode(data);
+				
+				var midelOldPoint:MapPoint;					
+				var midelNewPoint:MapPoint;
+				
+				var i:int = 1;
+				
+				if(dataAry.length)
+				{
+					datagridHistory.dataProvider = new ArrayCollection(dataAry);
+					
+					var locateTimeField:String = configXML.historyViewLocateTime; 
+					locateTimeHistory.dataField = locateTimeField;
+					locateTimeHistory.dataTipField = locateTimeField;
+					
+					var LocateMsgField:String = configXML.historyViewLocateMsgField;
+					locateMsgHistory.dataField = LocateMsgField;
+					locateMsgHistory.dataTipField = LocateMsgField;
+					
+					dataAry = getLocate(dataAry);
+					
+					var longField:String = configXML.historyViewLongitudeField;
+					var latField:String = configXML.historyViewLatitudeField;
+					
+					var longitude:Number = dataAry[0][longField];
+					var latitude:Number = dataAry[0][latField];
+					
+					var raisMapPoint:MapPoint = new MapPoint(longitude,latitude);
+					
+					var picURL:String = configXML.historyViewMoveSymURL;
+					var raisSymbol:PictureMarkerSymbol = new PictureMarkerSymbol(picURL,87*0.7,32*0.7);
+					var angle=this.caculateAngle(new MapPoint(dataAry[0].X,dataAry[0].Y),new MapPoint(dataAry[1].X,dataAry[1].Y));
+					 
+					raisSymbol.angle=angle;
+					var raisGraphic:Graphic = new Graphic(raisMapPoint,raisSymbol,dataAry[0]);
+					
+					
+					HistoryPointGraphicsLayer.add(raisGraphic);
+					
+					//添加弹出框
+					showCarInfo( raisGraphic,raisMapPoint);
+					//end 添加弹出框
+					
+					//添加起点
+					var satrtSymURL:String=configXML.startSymURL;
+					var startSymbol:PictureMarkerSymbol=new PictureMarkerSymbol(satrtSymURL, 16,16, 0, 0);
+					
+					var startGraphic:Graphic = new Graphic(raisMapPoint,startSymbol,dataAry[0]);
+					
+					HistoryPointGraphicsLayer.add(startGraphic);
+					
+					
+					//end 
+					
+					midelOldPoint = raisMapPoint;
+					
+					if(dataAry.length > 1)
+					{
+						toMapExtent(dataAry);
+						
+						raisMove();
+					}
+					else
+					{
+						map.centerAt(raisMapPoint);
+					}
+				}
+				
+				
+				/*
+				放射源的移动
+				*/
+				function raisMove():void
+				{
+					var locateTimeField:String = configXML.historyViewLocateTime; 
+					var timeStr:String = dataAry[i][locateTimeField];
+					
+					datagridHistory.setFocus();
+					datagridHistory.findString(timeStr);
+					
+					var oldMapPoint:MapPoint = raisGraphic.geometry as MapPoint;
+					
+					var longitude:Number = dataAry[i][longField];
+					var latitude:Number = dataAry[i][latField];
+					
+					var newMapPoint:MapPoint = new MapPoint(longitude, latitude, map.spatialReference);
+					
+					
+					var oldLong:Number = oldMapPoint.x;
+					var oldLat:Number = oldMapPoint.y;
+					
+					var newLong:Number = newMapPoint.x;
+					var newLat:Number = newMapPoint.y;
+					
+					var longLength:Number = newLong - oldLong;
+					var latLength:Number = newLat - oldLat;
+					
+					var x:Number = longLength * 1110;
+					var y:Number = latLength * 1110;
+					
+					var z:Number = Math.ceil(Math.sqrt(Math.pow(x,2) + Math.pow(y,2)));
+					if(z==0)
+					{
+						i++;
+						raisMove();
+					}
+					
+					var longEvery:Number = longLength/z;
+					var latEvery:Number = latLength/z;
+					
+					var timeSpace:Number = configXML.raisMoveParam.@moveSpeed;
+					
+					TimerHistory = new Timer(timeSpace,z);
+					TimerHistory.addEventListener(TimerEvent.TIMER, function(e:TimerEvent):void{onTimer_raisMove(longEvery,latEvery)});
+					TimerHistory.addEventListener(TimerEvent.TIMER_COMPLETE, function(e:TimerEvent):void{onTimer_complete(newMapPoint)});
+					TimerHistory.start();
+				}
+				
+				
+				
+				/*
+				通过 timer 实现两点间实现匀速移动
+				*/
+				function onTimer_raisMove(long:Number, lat:Number):void
+				{
+					var longitude:Number = midelOldPoint.x + long;
+					var latiude:Number = midelOldPoint.y + lat;
+					
+					midelNewPoint = new MapPoint(longitude,latiude,map.spatialReference);
+					
+					raisGraphic.geometry = midelNewPoint;
+					
+					var array:Array = new Array();
+					array.push(midelOldPoint);
+					array.push(midelNewPoint);
+					
+					var newPolyline:Polyline = new Polyline();
+					newPolyline.addPath(array);
+					
+					var lineColor:Number = configXML.raisMoveParam.@lineColor;
+					var lineAlpha:Number = configXML.raisMoveParam.@lineAlpha;
+					var lineWidth:Number = configXML.raisMoveParam.@lineWidth;
+					
+					var lineGraphic:Graphic = new Graphic(newPolyline,new SimpleLineSymbol("",lineColor,lineAlpha,lineWidth));
+					HistoryLineGraphicsLayer.add(lineGraphic);
+					
+					midelOldPoint = midelNewPoint;
+					
+					//车辆信息弹出框
+					//添加弹出框
+					if(TimerHistory.currentCount%1==0){
+						showCarInfo( raisGraphic,midelNewPoint);
+					}
+					//end 添加弹出框					
+					
+				}
+				
+				
+				/*
+				timer 计时结束
+				*/
+				function onTimer_complete(newMapPoint:MapPoint):void
+				{
+					
+					pointsNum++;
+					
+					
+					
+					//绘制节点
+					//var nodeGraphic:Graphic=new Graphic(newMapPoint as  Geometry,new SimpleMarkerSymbol("circle"),null);
+					//HistoryPointGraphicsLayer.add(nodeGraphic);
+					//车辆信息弹出框
+					//添加弹出框
+					showCarInfo( raisGraphic,newMapPoint);
+					//end 添加弹出框
+					
+					if(i < dataAry.length - 1)
+					{
+						
+						var picURL:String = configXML.historyViewMoveSymURL;
+						var raisSymbol:PictureMarkerSymbol = new PictureMarkerSymbol(picURL,87*0.7,32*0.7);
+						var angle=caculateAngle(new MapPoint(dataAry[pointsNum].X,dataAry[pointsNum].Y),new MapPoint(dataAry[pointsNum+1].X,dataAry[pointsNum+1].Y));
+						 
+						
+						raisSymbol.angle=angle;
+						raisGraphic.geometry = newMapPoint;
+						raisGraphic.symbol=raisSymbol;
+						if(dataAry[pointsNum])raisGraphic.attributes=dataAry[pointsNum];
+						i++;
+						raisMove();
+					}else{
+						//添加终点
+						var longitude:Number = dataAry[dataAry.length-1][longField];
+						var latitude:Number = dataAry[dataAry.length-1][latField];
+						
+						var raisMapPoint:MapPoint = new MapPoint(longitude,latitude);
+						var stopSymURL:String=configXML.stopSymURL;
+						var stopSymbol:PictureMarkerSymbol=new PictureMarkerSymbol(stopSymURL, 16,16, 0, 0);
+						
+						var stopGraphic:Graphic = new Graphic(raisMapPoint,stopSymbol,dataAry[dataAry.length-1]);
+						
+						HistoryPointGraphicsLayer.add(stopGraphic);
+						//end
+						//回放结束
+						state=0;
+						pointsNum=0;
+						pauseButtonHistory.label="重新回放";
+						
+					}
+					
+					
+				}
+			}
+			
+			
+			/**
+			 * 功能：加工出经纬度字段 
+			 */
+			private function getLocate(dataAry:Array):Array
+			{
+				for(var i:int=0;i<dataAry.length;i++)
+				{
+					var longField:String = configXML.historyViewLongitudeField;
+					var latField:String = configXML.historyViewLatitudeField;
+					
+					var longitude:Number = dataAry[i][longField];
+					var latitude:Number = dataAry[i][latField];
+					
+					dataAry[i].locate = longitude.toString() + "  " + latitude.toString();
+				}
+				
+				return dataAry;
+			}
+			
+			
+			/**
+			 * 功能：缩放到目标区域
+			 */
+			private function toMapExtent(dataArray:Array):void
+			{
+				var xMin:Number = 200;
+				var yMin:Number = 200;
+				var xMax:Number = 0;
+				var yMax:Number = 0;
+				
+				var longField:String = configXML.historyViewLongitudeField;
+				var latField:String = configXML.historyViewLatitudeField;
+				
+				for(var i:int=0;i<dataArray.length;i++)
+				{
+					var longitude:Number = dataArray[i][longField];
+					var latitude:Number = dataArray[i][latField];
+					
+					if(xMin > longitude)
+						xMin = longitude;
+					if(yMin > latitude)
+						yMin = latitude;
+					if(xMax < longitude)
+						xMax = longitude;
+					if(yMax < latitude)
+						yMax = latitude;
+				}
+				
+				var num:Number = configXML.raisMoveParam.@mapExtent;
+				
+				if(num)
+				{
+					var Xnum:Number = (xMax - xMin)/num;
+					var Ynum:Number = (yMax - yMin)/num;
+				}
+				
+				map.extent = new Extent(xMin-Xnum,yMin-Xnum,xMax+Ynum,yMax+Ynum);
+			}
+			
+			
+			/**
+			 * 事件：点击停止按钮
+			 */
+			private function stopButtonHistory_clickHandler():void
+			{
+				if(TimerHistory.running)
+				{
+					TimerHistory.stop();
+				}
+				state=0;
+				pauseButtonHistory.label="暂停";
+				HistoryPointGraphicsLayer.clear();
+				
+				HistoryLineGraphicsLayer.clear();
+				
+				datagridHistory.dataProvider = null;
+				map.infoWindow.closeButton.parent.height=18;
+				map.infoWindow.hide();
+				pointsNum=0;
+				
+			}
+			
+			var hasInited:Boolean=false;
+			
+			/**
+			 * 事件：打开模块
+			 */
+			private function widgetOpenedHandler():void
+			{
+				if(hasInited)
+				{
+					ViewerContainer.addEventListener(AppEvent.DATA_SENT,onDataSent);					
+					fetchShareDataByKey("trackMove");
+					
+					var d:Date=new Date();
+					d.date=d.date-1;
+					selectedTime.beginTime.setDateTimeOfDateFormat(d);
+				}
+			}
+			
+			
+			/**
+			 * 事件：关闭模块 
+			 */
+			private function widgetClosedHandler():void
+			{
+				if(TimerHistory!=null)
+				{
+					TimerHistory.stop();
+					TimerHistory=null;
+				}
+				
+				HistoryPointGraphicsLayer.clear();
+				
+				HistoryLineGraphicsLayer.clear();
+				
+				datagridHistory.dataProvider = null;
+				map.infoWindow.closeButton.parent.height=18;
+				map.infoWindow.hide();
+				pointsNum=0;
+				state=0;
+				
+				
+			}
+			
+			protected function pauseButtonHistory_clickHandler(event:MouseEvent):void
+			{
+				
+				if(state==0){
+					if(pauseButtonHistory.label=="重新回放"){
+						//重新回放
+						HistoryPointGraphicsLayer.clear();
+						
+						HistoryLineGraphicsLayer.clear();
+						
+						datagridHistory.dataProvider = null;
+						state=1;						
+						//test
+						onResult_getRaisHistoryPlace(dataString);//" [{\"X\": \"123.3594444\",\"Y\": \"41.80055556\",\"LocatedTime\": \"2011-8-9 11:44:46\",\"LocatedMsg\": \"沈阳市环境监察支队\"},{\"X\": \"123.4594444\",\"Y\": \"41.85055556\",\"LocatedTime\": \"2011-8-9 12:44:46\",\"LocatedMsg\": \"沈阳市环境监察支队\"},{\"X\": \"123.4794444\",\"Y\": \"41.82065556\",\"LocatedTime\": \"2011-8-9 13:00:00\",\"LocatedMsg\": \"沈阳市环境监察支队\"},{\"X\": \"123.6894444\",\"Y\": \"41.83065556\",\"LocatedTime\": \"2011-8-9 14:00:00\",\"LocatedMsg\": \"沈阳市环境监察支队\"}]");
+					}
+					pauseButtonHistory.label="暂停";
+					
+					return;
+				}
+				if(TimerHistory.running)
+				{
+					TimerHistory.stop();
+					pauseButtonHistory.label="继续";
+					state=2;
+				}else{
+					TimerHistory.start();
+					pauseButtonHistory.label="暂停";
+					state=1;
+				}
+			}
+			
+			
+			/**
+			 * 添加弹出框
+			*/
+			private function showCarInfo(graphic:Graphic,pt:MapPoint):void
+			{
+				var description:String=getDescription(graphic,pt);	 
+				var infoWindow:trackInfoWindow=new trackInfoWindow();
+				if(graphic.attributes.CarNo)
+				{
+					infoWindow.title =this.curCarName;// graphic.attributes.CarNo+","+this.curCarName;//this.curCarId+","+this.curCarName;
+				}else{
+					infoWindow.title = this.curCarName;
+				}
+				checkAttributes(graphic.attributes);
+				infoWindow.description= description;
+				infoWindow.attributes=graphic.attributes;
+				
+				if(map.infoWindow.content==null)
+				{					
+					map.infoWindow.content = infoWindow; 	
+					
+					map.infoWindow.closeButton.parent.height=0;
+					map.infoWindow.show(pt);
+					
+				}
+				else
+				{
+					var description:String=getDescription(graphic,pt);	 
+					map.infoWindow.closeButton.parent.height=0;
+					(map.infoWindow.content as trackInfoWindow).description= description;
+					(map.infoWindow.content as trackInfoWindow).attributes=graphic.attributes;
+					map.infoWindow.show(pt);
+				}
+			}
+			
+			private function checkAttributes(attributes:Object):void{
+				if(!attributes.CarType){
+					attributes.CarType="--";
+				}
+				if(!attributes.DriverNameA){
+					attributes.DriverNameA="--";
+				}
+				if(!attributes.TellPhoneA){
+					attributes.TellPhoneA="--";
+				}
+				if(!attributes.CarSpeed){
+					attributes.CarSpeed="--";
+				}
+				if(!attributes.CarDirection){
+					attributes.CarDirection="--";
+				}
+				if(!attributes.LocatedTime){
+					attributes.LocatedTime="--";
+				}
+				if(!attributes.LocatedMsg){
+					attributes.LocatedMsg="--";
+				}
+			}
+			
+			private function getDescription(graphic:Graphic,pt:MapPoint):String{
+				var formater:NumberFormatter=new NumberFormatter();
+				formater.precision=2;
+				formater.useThousandsSeparator=false; 		
+				var description:String="";
+				if(graphic.attributes.CarType){
+					description+="车型:"+graphic.attributes.CarType;
+				}else{
+					description+="车型:"+"--";
+				}
+				if(graphic.attributes.DriverNameA){
+					description+="\n司机:"+graphic.attributes.DriverNameA;
+				}else{
+					description+="\n司机:"+"--";
+				}
+				if(graphic.attributes.TellPhoneA){
+					description+="\n手机:"+graphic.attributes.TellPhoneA;
+				}else{
+					description+="\n手机:"+"--";
+				}
+				if(graphic.attributes.CarSpeed){
+					description+="\n车速:"+graphic.attributes.CarSpeed;
+				}else{
+					description+="\n车速:"+"--";
+				}
+				if(graphic.attributes.CarDirection){
+					description+="\n方向:"+graphic.attributes.CarDirection;
+				}else{
+					description+="\n方向:"+"--";
+				}
+				if(graphic.attributes.LocatedTime){
+					description+="\n时间:"+graphic.attributes.LocatedTime;
+				}else{
+					description+="\n时间:"+"--";
+				}
+				/*
+				//坐标信息
+				if(graphic.attributes.LocatedMsg){
+				description+="\n地址:"+graphic.attributes.LocatedMsg;
+				}else{
+				description+="\n地址:"+"--";
+				}*/
+				
+				//description+="\n坐标:"+formater.format(pt.x)+","+formater.format(pt.y);
+				return description;
+				
+			}
+			
+			/**
+			 * 函数:验证表单
+			 */
+			private function checkInput():Boolean{
+				
+				if(carList.selectedIndex==-1){Alert.show("没有选择车辆！");return false;}
+				
+				if(selectedTime.beginTime.getDateTimeOfDateFormat()==null){Alert.show("没有选择开始时间！");return false;}
+				if(selectedTime.endTime.getDateTimeOfDateFormat()==null){Alert.show("没有选择结束时间！");return false;}
+				return true;
+			}
+			
+			/**
+			 * 函数:计算两点夹角
+			 */
+			private function caculateAngle(pt0:MapPoint,pt1:MapPoint):Number{
+				var angle:Number;
+				
+				var oldLong:Number = pt0.x;
+				var oldLat:Number =pt0.y;
+				
+				var newLong:Number = pt1.x;
+				var newLat:Number =pt1.y;
+				
+				var longLength:Number = newLong - oldLong;
+				var latLength:Number = newLat - oldLat;
+				var x:Number = longLength * 1110;
+				var y:Number = latLength * 1110;
+				angle=Math.atan(y/x); 
+				angle=angle*180/Math.PI;
+				if(longLength>0 && latLength>0)
+					angle=-angle;
+				else if(longLength<0 && latLength>0)
+					angle=180-angle;
+				else if(longLength<0 && latLength<0)
+					angle=180-angle;
+				else if(longLength>0 && latLength<0)
+					angle=-angle;
+				
+//				if(pt0.x>pt1.x&&pt0.y>pt1.y)angle=-angle;
+//				else if(pt0.x<pt1.x&&pt0.y>pt1.y)angle=180-angle;
+//				else if(pt0.x<pt1.x&&pt0.y<pt1.y)angle=180+angle;
+//				else if(pt0.x>pt1.x&&pt0.y<pt1.y)angle=-angle;
+				return angle;
+			}
+			
+			private function showNodeInfo(event:Event):void{
+				var item=datagridHistory.selectedItem;
+				var infoWindow:trackInfoWindow=new trackInfoWindow();
+				if(item==null)
+					return;
+				if(item.CarNo)
+				{
+					infoWindow.title = item.CarNo+","+this.curCarName;//this.curCarId+","+this.curCarName;
+				}else{
+					infoWindow.title = this.curCarName;
+				}
+				checkAttributes(item);				 
+				infoWindow.attributes=item;
+				map.infoWindow.content = infoWindow; 					
+				map.infoWindow.closeButton.parent.height=0;
+				map.infoWindow.show(new MapPoint(item.X,item.Y));
+			}
+		]]>
+	</fx:Script>
+	
+	
+	<viewer:WidgetTemplate id="wTemplate"
+						   width="360" height="320"
+						   closed="widgetClosedHandler()"
+						   open="widgetOpenedHandler()" >
+		<s:VGroup  width="100%" height="100%" gap="4"  horizontalAlign="left"
+				   paddingLeft="1" paddingRight="1" paddingTop="1" paddingBottom="1"
+				   >
+			<s:HGroup width="100%" >
+				<s:Label text="选择车辆：" height="100%" verticalAlign="middle"/>
+				<s:DropDownList id="carList" width="247"/>
+			</s:HGroup>
+			<s:VGroup width="100%" horizontalAlign="left"  verticalAlign="middle" gap="0" height="90">
+				<trackMove:DateCanvas id="selectedTime"  height="57" width="314"/>
+				<s:HGroup height="100%" horizontalAlign="left"  width="100%" verticalAlign="middle">
+					<s:Button id="startButtonHistory" label="开始" click="startButtonHistory_clickHandler(event)"/>			
+					<s:Button id="pauseButtonHistory" label="暂停" click="pauseButtonHistory_clickHandler(event)"/>
+					<s:Button id="stopButtonHistory" label="停止" click="stopButtonHistory_clickHandler()"/>
+				</s:HGroup>
+			</s:VGroup>
+			<mx:HRule width="290"/>
+			<s:Label text="轨迹信息" width="100%"  height="34" verticalAlign="middle" textAlign="left"/>
+			<mx:DataGrid id="datagridHistory" width="348" height="100%"  click="showNodeInfo(event)">
+				<mx:columns>
+					<mx:DataGridColumn id="locateTimeHistory" headerText="时间" showDataTips="true"/>
+					<mx:DataGridColumn id="locateHistory" headerText="坐标" dataField="locate" dataTipField="locate"  showDataTips="true"/>
+					<mx:DataGridColumn id="locateMsgHistory" headerText="车速" showDataTips="true" />
+				</mx:columns>
+			</mx:DataGrid>
+		</s:VGroup>
+		
+	</viewer:WidgetTemplate>
+</viewer:BaseWidget>

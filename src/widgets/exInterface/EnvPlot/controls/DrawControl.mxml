@@ -1,0 +1,536 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 xmlns:plotapi="com.esrichina.demo.plotapi.*"
+		 xmlns:EnvPlot="widgets.exInterface.EnvPlot.*"
+		 initialize="init()" 
+		 >
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.Map;
+			import com.esri.ags.events.DrawEvent;
+			import com.esri.ags.events.MapMouseEvent;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.symbols.SimpleFillSymbol;
+			import com.esri.ags.symbols.SimpleLineSymbol;
+			import com.esri.ags.symbols.Symbol;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			import com.esrichina.dynamicplot.plot.PlotTypes;
+			import com.esrichina.dynamicplot.symbols.GradientColorFillSymbol;
+			import com.esrichina.dynamicplot.tools.PlotDrawTool;
+			import com.esrichina.dynamicplot.tools.PlotEditTool;
+			
+			import mx.graphics.ImageSnapshot;
+			import mx.graphics.codec.JPEGEncoder;
+			import mx.graphics.codec.PNGEncoder;
+			
+			import org.papervision3d.objects.Plane;
+			
+			import widgets.exInterface.EnvPlot.PlanUtil;
+			import widgets.exInterface.EnvPlot.PlotEvent;
+			
+			private var map:Map;
+			private var plotLayer:GraphicsLayer;
+			private var plotDrawTool:PlotDrawTool;
+			private var plotEditTool:PlotEditTool;
+			private var fillType:String;
+			
+			private var lastActiveEdit:String;
+			private var activePlot:Graphic;
+			
+			private static const DEFAULT_PLOT_DRAW_SYMBOL:SimpleFillSymbol=new SimpleFillSymbol("solid", 0, 0, new SimpleLineSymbol("solid", 0, 0.5));
+			private static const DEFAULT_PLOT_SYMBOL:SimpleFillSymbol=new SimpleFillSymbol("solid", 0xff0000, 0.6, new SimpleLineSymbol());
+			private static const DEFAULT_GRADIENT_SYMBOL:GradientColorFillSymbol = new GradientColorFillSymbol(0xff0000, 0x000000, 0, 0.6, new SimpleLineSymbol());
+			
+			private function init():void
+			{
+				ViewerContainer.addEventListener(PlotEvent.PLOT_MAP_LOADED, mapLoadHandler);
+				
+				ViewerContainer.addEventListener(AppEvent.CLEAR_MAP, clearAllData);
+				
+				ViewerContainer.addEventListener(PlotEvent.CLEAR_ALL_PLOT, ClearLayer);
+				ViewerContainer.addEventListener(PlotEvent.CLEAR_SELECT_PLOT, ClearPoint);
+				
+				ViewerContainer.addEventListener(PlotEvent.LINE_SYMBOL_CHANGE, lineSymbolChangeHandler);
+				ViewerContainer.addEventListener(PlotEvent.FILL_SYMBOL_CHANGE, fillSymbolChangeHandler);
+			}
+			
+			
+			/**
+			 * 监听地图加载完成
+			 * 设定属性
+			*/
+			private function mapLoadHandler(event:PlotEvent):void
+			{
+				this.map = event.data as Map;
+				this.map.addEventListener(MapMouseEvent.MAP_CLICK, mapMouseClickHandler);
+				
+				this.plotLayer = new GraphicsLayer;
+				this.map.addLayer(this.plotLayer);
+				
+				this.plotDrawTool = new PlotDrawTool(this.map);
+				this.plotDrawTool.fillSymbol = DEFAULT_PLOT_DRAW_SYMBOL;
+				this.plotDrawTool.showDrawTips = true;
+				this.plotDrawTool.addEventListener(DrawEvent.DRAW_END, onPlotDrawEnd);
+				
+				this.plotEditTool = new PlotEditTool(this.map);
+			}
+			
+			
+			/**
+			 * 监听边线改变
+			 * 改变标绘符号的轮廓线
+			*/
+			private function lineSymbolChangeHandler(event:PlotEvent):void
+			{
+				var outlineColor:Number = event.data.outlineColor;
+				var outlineAlpha:Number = event.data.outlineAlpha;
+				var outlineWidth:Number = event.data.outlineWidth;
+				
+				DEFAULT_PLOT_SYMBOL.outline.color = outlineColor;
+				DEFAULT_PLOT_SYMBOL.outline.alpha = outlineAlpha;
+				DEFAULT_PLOT_SYMBOL.outline.width = outlineWidth;
+			
+				DEFAULT_GRADIENT_SYMBOL.outline.color = outlineColor;
+				DEFAULT_GRADIENT_SYMBOL.outline.alpha = outlineAlpha;
+				DEFAULT_GRADIENT_SYMBOL.outline.width = outlineWidth;
+				
+				if(this.activePlot)
+				{
+					var activeSymbol:Symbol = activePlot.symbol;
+					if(activeSymbol is SimpleFillSymbol)
+					{
+						var sfs:SimpleFillSymbol = activeSymbol as SimpleFillSymbol;
+						sfs.outline = new SimpleLineSymbol();
+						sfs.outline.color = outlineColor;
+						sfs.outline.alpha = outlineAlpha;
+						sfs.outline.width = outlineWidth;
+						this.activePlot.symbol = sfs;
+					}
+					else if(activeSymbol is GradientColorFillSymbol)
+					{
+						var gcfs:GradientColorFillSymbol = activeSymbol as GradientColorFillSymbol;
+						gcfs.outline = new SimpleLineSymbol();
+						gcfs.outline.color = outlineColor;
+						gcfs.outline.alpha = outlineAlpha;
+						gcfs.outline.width = outlineWidth;
+						this.activePlot.symbol = gcfs;
+					}
+				}
+			}
+			
+			
+			/**
+			 * 监听填充色改变
+			 * 改变标绘符号的填充色
+			*/
+			private function fillSymbolChangeHandler(event:PlotEvent):void
+			{
+				
+				this.fillType = event.data.fillType;
+				
+				var fillAlpha:Number = event.data.fillAlpha;
+				
+				if(event.data.fillType=="singleColor")
+				{
+					var fillColor:Number = event.data.fillColor;
+					var fillStyle:String = event.data.fillStyle;
+					DEFAULT_PLOT_SYMBOL.color = fillColor;
+					DEFAULT_PLOT_SYMBOL.alpha = fillAlpha;
+					DEFAULT_PLOT_SYMBOL.style = fillStyle;
+				}
+				else
+				{
+					DEFAULT_GRADIENT_SYMBOL.alpha = event.data.fillAlpha;
+					DEFAULT_GRADIENT_SYMBOL.color1 = event.data.color1;
+					DEFAULT_GRADIENT_SYMBOL.color2 = event.data.color2;
+				}
+				
+				if(this.activePlot)
+				{
+					var lineSymbol:SimpleLineSymbol = new SimpleLineSymbol(); 
+					
+					if(activePlot.symbol is SimpleFillSymbol)
+					{
+						 var fillSymbol:SimpleFillSymbol = activePlot.symbol as SimpleFillSymbol;
+						 lineSymbol = fillSymbol.outline;
+					}
+					else if(activePlot.symbol is GradientColorFillSymbol)
+					{
+						var gradientSymbol:GradientColorFillSymbol = activePlot.symbol as GradientColorFillSymbol;
+						lineSymbol = gradientSymbol.outline;
+					}
+					
+					if(event.data.fillType=="singleColor")
+					{
+						var sfs:SimpleFillSymbol = new SimpleFillSymbol();
+						sfs.color = event.data.fillColor;
+						sfs.alpha = fillAlpha;
+						sfs.style = event.data.fillStyle;
+						sfs.outline = lineSymbol;
+						this.activePlot.symbol = sfs;
+					}
+					else
+					{
+						var gcfs:GradientColorFillSymbol = new GradientColorFillSymbol;
+						gcfs.alpha = event.data.fillAlpha;
+						gcfs.color1 = event.data.color1;
+						gcfs.color2 = event.data.color2;
+						gcfs.outline = lineSymbol;
+						this.activePlot.symbol = gcfs;
+					}
+				}
+			}
+			
+			
+			/**
+			 * 鼠标点击地图
+			 * 取消图标的焦点 
+			*/
+			private function mapMouseClickHandler(event:MapMouseEvent):void
+			{
+				plotEditTool.deactivate();
+				this.activePlot = null;
+			}
+			
+			
+			/**
+			 * 清空图层 
+			 */
+			private function ClearLayer(event:PlotEvent):void
+			{
+				plotDrawTool.deactivate();
+				plotEditTool.deactivate();
+				plotLayer.clear();
+				activePlot = null;
+			}
+			
+			/**
+			 * 清除当前选中标绘 
+			 */
+			private function ClearPoint(event:PlotEvent=null):void
+			{
+				plotEditTool.deactivate();
+				plotLayer.remove(activePlot);
+				activePlot = null;
+			}
+			
+			
+			/**
+			 * 绘制图标 
+			*/
+			private function activatePlotDrawTool(action:String):void
+			{
+				plotEditTool.deactivate();
+				this.activePlot = null;
+				plotDrawTool.activate(action);
+			}
+			
+			
+			/**
+			 * 图标绘制完毕
+			 * 加载已设置好的符号样式
+			 * 将标绘设置为编辑状态
+			 * 派发当前选中的标绘
+			*/
+			private function onPlotDrawEnd(event:DrawEvent):void
+			{
+				event.graphic.symbol = getCurrentPlotSymbol();
+				plotLayer.add(event.graphic);
+				plotDrawTool.deactivate();
+				this.lastActiveEdit="moveEditControlPoints";
+					
+				plotEditTool.activate(PlotEditTool.MOVE | PlotEditTool.EDIT_CONTROL_POINTS, event.graphic);
+				event.graphic.addEventListener(MouseEvent.CLICK, plotMouseClickHandler);
+				
+				this.activePlot = event.graphic;
+				ViewerContainer.dispatchEvent(new PlotEvent(PlotEvent.PLOT_SELECTED, this.activePlot));
+				stage.focus=this.activePlot;
+				this.activePlot.stage.addEventListener(KeyboardEvent.KEY_UP,plotKeyHandler);
+				function plotKeyHandler(event:KeyboardEvent):void{
+//					switch(event.keyCode){
+//						case 46:
+//							break;
+//					}					
+					if(event.keyCode==46)
+						if(activePlot)
+							plotLayer.remove(activePlot);					
+				}
+				//删除
+				setContextMenu();
+			}
+			
+			
+			private function  setContextMenu():void{
+				var menuItem:ContextMenuItem=new ContextMenuItem("删除");
+				menuItem.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT,onContextMenuDelete);
+				clearSysMenu();
+				if(map.contextMenu.customItems.length>0)map.contextMenu.customItems.splice(0);//clear menuitems
+				map.contextMenu.customItems.push(menuItem);
+				if(this.activePlot==null){menuItem.enabled=false;}else{menuItem.enabled=true;}
+			}
+			
+			private function clearSysMenu():void{
+				map.contextMenu.builtInItems.forwardAndBack=false;
+				map.contextMenu.builtInItems.loop=false;
+				map.contextMenu.builtInItems.play=false;
+				map.contextMenu.builtInItems.print=false;
+				map.contextMenu.builtInItems.quality=false;				
+				map.contextMenu.builtInItems.save=false;
+				map.contextMenu.builtInItems.rewind=false;
+			}
+			
+			//右键菜单删除选中标绘事件
+			private function onContextMenuDelete(event:ContextMenuEvent):void{
+				if(this.activePlot)plotLayer.remove(this.activePlot);
+			}
+			
+			
+			/**
+			 * 获取当前标绘的符号设置信息 
+			*/
+			private function getCurrentPlotSymbol():Symbol
+			{
+				if(this.fillType == "singleColor")
+				{
+					var symbol:SimpleFillSymbol = new SimpleFillSymbol();
+					symbol.style = DEFAULT_PLOT_SYMBOL.style;
+					symbol.alpha = DEFAULT_PLOT_SYMBOL.alpha;
+					symbol.color = DEFAULT_PLOT_SYMBOL.color;
+					var outline:SimpleLineSymbol = new SimpleLineSymbol();
+					outline.alpha = DEFAULT_PLOT_SYMBOL.outline.alpha;
+					outline.color = DEFAULT_PLOT_SYMBOL.outline.color;
+					outline.style = DEFAULT_PLOT_SYMBOL.outline.style;
+					outline.width = DEFAULT_PLOT_SYMBOL.outline.width;
+					symbol.outline = outline;
+					return symbol;
+				}
+				
+				var gSymbol:GradientColorFillSymbol = new GradientColorFillSymbol();
+				gSymbol.color1 = DEFAULT_GRADIENT_SYMBOL.color1;
+				gSymbol.color2 = DEFAULT_GRADIENT_SYMBOL.color2;
+				gSymbol.alpha = DEFAULT_GRADIENT_SYMBOL.alpha;
+				outline = new SimpleLineSymbol();
+				outline.alpha = DEFAULT_GRADIENT_SYMBOL.outline.alpha;
+				outline.color = DEFAULT_GRADIENT_SYMBOL.outline.color;
+				outline.width = DEFAULT_GRADIENT_SYMBOL.outline.width;
+				gSymbol.outline = outline;
+				return gSymbol;
+			}
+			
+			
+			/**
+			 * 监听标绘图标的鼠标点击事件
+			 * 切换标绘图标的编辑状态
+			*/
+			private function plotMouseClickHandler(event:MouseEvent):void
+			{
+				if (this.lastActiveEdit == "moveEditControlPoints")
+				{
+					plotEditTool.activate(PlotEditTool.MOVE | PlotEditTool.SCALE_ROTATE, Graphic(event.currentTarget));
+					this.lastActiveEdit="moveScaleRotate";
+				}
+				else
+				{
+					plotEditTool.activate(PlotEditTool.MOVE | PlotEditTool.EDIT_CONTROL_POINTS, Graphic(event.currentTarget));
+					this.lastActiveEdit="moveEditControlPoints";
+				}
+				
+				this.activePlot = Graphic(event.currentTarget);
+				ViewerContainer.dispatchEvent(new PlotEvent(PlotEvent.PLOT_SELECTED, this.activePlot));
+			}
+			
+			
+			/**
+			 * 保存标绘 
+			*/
+			private function savePolt():void
+			{
+				xml = PlanUtil.serializePlan(plotLayer);
+			}
+			
+			private var xml:String = "";
+			
+			/**
+			 * 重新加载标绘 
+			*/
+			private function reLoadPlot():void
+			{
+				PlanUtil.deserializePlan(plotLayer, xml);
+			}
+			
+			
+			/**
+			 * 鼠标移入标绘时的效果 
+			*/
+			private function rollOverHandler(event:Event):void
+			{
+				event.currentTarget.filters=[glower];
+			}
+			/**
+			 * 鼠标移出标绘时的效果  
+			*/
+			private function rollOutHandler(event:Event):void
+			{
+				event.currentTarget.filters=[];
+			}
+			
+			
+
+			protected function btnClear_clickHandler(event:MouseEvent):void
+			{
+				clearAll();
+			}
+			
+			private function clearAllData(event:AppEvent=null):void{
+				clearAll();
+			}
+			
+			private function clearAll():void{
+				ViewerContainer.dispatchEvent(new PlotEvent(PlotEvent.CLEAR_ALL_PLOT));
+				
+			}
+
+
+			protected function btnSavePicture_clickHandler(event:MouseEvent):void
+			{
+				toPictureCurrentScreen();
+			}
+			
+			
+			public function toPictureCurrentScreen():void{			
+				var rect:Rectangle=screen;			
+				
+				//用bitmapdata全部获取预览图片的像素
+				var initBD:BitmapData = new BitmapData(screen.width, screen.height);
+				initBD.draw(map);
+				
+				//截取出所选区域的像素集合
+				//矩形为要截取区域 
+				var bytearray:ByteArray = new ByteArray();
+				var re:Rectangle = new Rectangle(rect.x, rect.y, rect.width, rect.height);
+				bytearray = initBD.getPixels(re); 
+				bytearray.position = 0; 		//必须的，当前的bytearray.position为最大长度，要设为从0开始读取
+				
+				//将截取出的像素集合存在新的bitmapdata里，大小和截取区域一样
+				if(rect.width && rect.height)
+				{
+					var imgBD:BitmapData;
+					imgBD = new BitmapData(rect.width, rect.height);
+					var fillre:Rectangle = new Rectangle(0, 0, rect.width, rect.height);
+					imgBD.setPixels(fillre, bytearray); 
+					
+					if(imgBD)
+					{
+						var bitmap:Bitmap = new Bitmap(imgBD);
+						
+						var imgshot:ImageSnapshot = new ImageSnapshot();
+						var _imageFormate:String = "PNGEncoder";
+						if(_imageFormate == "PNGEncoder")
+						{
+							imgshot = ImageSnapshot.captureImage(bitmap, 0, new PNGEncoder());
+						}
+						else if(_imageFormate == "JPEGEncoder")
+						{
+							imgshot = ImageSnapshot.captureImage(bitmap, 0, new JPEGEncoder());
+						}
+						var fileReference:FileReference = new FileReference();
+						fileReference.save(imgshot.data, "未命名.png");
+					}
+					
+				}
+			}
+
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<s:GlowFilter id="glower" alpha="1.0" blurX="6.0" blurY="6.0" color="#FF5800" inner="false"
+					  knockout="false" quality="2" strength="1"/>
+	</fx:Declarations>
+	
+	<s:VGroup width="100%" horizontalAlign="center">	
+		<mx:Grid width="100%" height="100%" paddingBottom="5" paddingLeft="5" paddingRight="5"
+				 paddingTop="5">
+			<mx:GridRow >
+				<mx:GridItem>
+					<mx:Image buttonMode="true" click="activatePlotDrawTool(PlotTypes.STRAIGHT_ARROW)"
+							  rollOut="rollOutHandler(event)" rollOver="rollOverHandler(event)"
+							  height="32" width="32" smoothBitmapContent="true"
+							  source="assets/images/plot/stright_arrow.png" toolTip="直箭头"
+							  useHandCursor="true"/>
+				</mx:GridItem>
+				<mx:GridItem>
+					<mx:Image buttonMode="true" click="activatePlotDrawTool(PlotTypes.SIMPLE_ARROW)"
+							  rollOut="rollOutHandler(event)" rollOver="rollOverHandler(event)"
+							  source="assets/images/plot/arrow.png" toolTip="简单箭头" useHandCursor="true" height="32" width="32" smoothBitmapContent="true"/>
+				</mx:GridItem>
+				<mx:GridItem>
+					<mx:Image buttonMode="true" click="activatePlotDrawTool(PlotTypes.CUSTOM_ARROW)"
+							  rollOut="rollOutHandler(event)" rollOver="rollOverHandler(event)"
+							  source="assets/images/plot/custom_arrow.png" toolTip="自定义箭头"
+							  useHandCursor="true" height="32" width="32" smoothBitmapContent="true"/>
+				</mx:GridItem>
+				<mx:GridItem>
+					<mx:Image buttonMode="true" click="activatePlotDrawTool(PlotTypes.TAILED_ARROW)"
+							  rollOut="rollOutHandler(event)" rollOver="rollOverHandler(event)"
+							  source="assets/images/plot/tail_arrow.png" toolTip="燕尾箭头"
+							  useHandCursor="true" height="32" width="32" smoothBitmapContent="true"/>
+				</mx:GridItem>
+				<mx:GridItem>
+					<mx:Image buttonMode="true"
+							  click="activatePlotDrawTool(PlotTypes.CUSTOM_TAILED_ARROW)"
+							  rollOut="rollOutHandler(event)" rollOver="rollOverHandler(event)"
+							  source="assets/images/plot/custom_tail_arrow.png" toolTip="自定义燕尾箭头"
+							  height="32" width="32" smoothBitmapContent="true"
+							  useHandCursor="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow>
+				<mx:GridItem>
+					<mx:Image buttonMode="true" click="activatePlotDrawTool(PlotTypes.DOUBLE_ARROW)"
+							  rollOut="rollOutHandler(event)" rollOver="rollOverHandler(event)"
+							  source="assets/images/plot/double_arrow.png" toolTip="双箭头"
+							  height="32" width="32" smoothBitmapContent="true"
+							  useHandCursor="true"/>
+				</mx:GridItem>
+				<mx:GridItem>
+					<mx:Image buttonMode="true" click="activatePlotDrawTool(PlotTypes.CIRCLE)"
+							  rollOut="rollOutHandler(event)" rollOver="rollOverHandler(event)"
+							  height="32" width="32" smoothBitmapContent="true"
+							  source="assets/images/plot/circle.png" toolTip="圆形区域" useHandCursor="true"/>
+				</mx:GridItem>
+				<mx:GridItem>
+					<mx:Image buttonMode="true" click="activatePlotDrawTool(PlotTypes.CURVE_FLAG)"
+							  rollOut="rollOutHandler(event)" rollOver="rollOverHandler(event)"
+							  source="assets/images/plot/curve_flag.png" toolTip="曲线旗标"
+							  height="32" width="32" smoothBitmapContent="true"
+							  useHandCursor="true"/>
+				</mx:GridItem>
+				<mx:GridItem>
+					<mx:Image buttonMode="true" click="activatePlotDrawTool(PlotTypes.RECT_FLAG)"
+							  rollOut="rollOutHandler(event)" rollOver="rollOverHandler(event)"
+							  source="assets/images/plot/rect_flag.png" toolTip="直角旗标"
+							  height="32" width="32" smoothBitmapContent="true"
+							  useHandCursor="true"/>
+				</mx:GridItem>
+				<mx:GridItem>
+					<mx:Image buttonMode="true" click="activatePlotDrawTool(PlotTypes.TRIANGLE_FLAG)"
+							  rollOut="rollOutHandler(event)" rollOver="rollOverHandler(event)"
+							  source="assets/images/plot/triangle_flag.png" toolTip="三角旗标"
+							  height="32" width="32" smoothBitmapContent="true"
+							  useHandCursor="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+		</mx:Grid>						
+		<s:Group width="50%">
+			<s:Button width="45" label="保存" id="btnSavePicture" click="btnSavePicture_clickHandler(event)">
+				
+			</s:Button>
+			<s:Button width="45" x="58" y="0" label="清除" id="btnClear" click="btnClear_clickHandler(event)"/>
+		</s:Group>
+	</s:VGroup>
+</s:Group>

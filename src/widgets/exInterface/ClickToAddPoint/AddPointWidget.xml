@@ -1,0 +1,11 @@
+<configuration>
+
+	<!-- 参数为一个数组，会在回调时传回 -->
+	<AddPointMethod>AddPointMethod</AddPointMethod>
+	<GetCoordinateMethod>GetCoordinate</GetCoordinateMethod>
+	<ClearPointMethod>clearResult</ClearPointMethod>
+	
+	<CursorPicture>assets/images/i_pin2.png</CursorPicture>
+	<PointPicture>assets/images/i_pin2.png</PointPicture>
+	
+</configuration>

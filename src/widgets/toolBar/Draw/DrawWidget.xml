@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<configuration>
+	
+	<widgetInfo>"名称：测量模块\n 功能：测量点的经纬度、线的距离、面的面积\n";</widgetInfo>
+	
+	<!-- 点位信息图标 -->
+	<pushpinIcon>assets/yutuImages/mapIcon/pushpin_centered.png</pushpinIcon>
+	
+	<titleBarImage>
+		<graph tootip="图形" icon="assets/yutuImages/widgetIcon/wTitlebarItem.png" />
+		<attri tootip="属性" icon="assets/yutuImages/widgetIcon/wTitlebarResult.png" />
+	</titleBarImage>
+	
+</configuration>
+

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:TitleWindow xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			   xmlns:s="library://ns.adobe.com/flex/spark" 
+			   xmlns:mx="library://ns.adobe.com/flex/mx" 
+			  
+			   width="230" height="80"
+		 	   cornerRadius="5" 
+			   close="titlewindow1_closeHandler(event)"
+			   alpha="1"
+			   >
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			
+			import mx.events.CloseEvent;
+			import mx.managers.PopUpManager;
+			 [Bindable] public var graphicClick:Graphic;
+			 [Bindable] public var callback:Function;
+			
+			private function ReseauMessage():void
+			{
+				callback(graphicClick);
+				PopUpManager.removePopUp(this);
+		    }
+			  
+			private function ReseauSeach():void
+			{
+				ViewerContainer.dispatchEvent(new AppEvent(AppEvent.Reseau_Type,graphicClick));
+				PopUpManager.removePopUp(this);
+			}
+		 
+
+			protected function titlewindow1_closeHandler(event:CloseEvent):void
+			{
+				PopUpManager.removePopUp(this);
+			}
+
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<s:GlowFilter id="glowFilter"
+					  alpha="1"
+					  color="{getStyle('chromeColor')}"
+					  inner="true"
+					  strength="2"/>
+		
+	</fx:Declarations>
+	<s:Rect top="0" left="0" right="2" bottom="2" >
+		<s:fill>
+			<s:SolidColor color="{getStyle('contentBackgroundColor')}" alpha="0.5" />
+		</s:fill>
+		<s:filters>
+			<s:DropShadowFilter blurX="0" blurY="0" />
+		</s:filters>
+	</s:Rect>
+	<s:Group width="100%" height="100%" alpha="1">
+		<s:HGroup width="100%" height="100%" horizontalAlign="center" horizontalCenter="middle" paddingTop="10">
+			<s:Button  label="显示网格信息" click="ReseauMessage()"  width="100" height="30"/>
+			<s:Button  label="查询污染源" click="ReseauSeach()"  width="100" height="30"/>
+		</s:HGroup>
+	 </s:Group>	
+</s:TitleWindow>

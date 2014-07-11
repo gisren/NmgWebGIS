@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+                   xmlns:s="library://ns.adobe.com/flex/spark"
+                   xmlns:mx="library://ns.adobe.com/flex/mx"
+                   xmlns:viewer="com.esri.viewer.*"
+				   xmlns:manager="widgets.exInterface.EnvPlot.manager.*" 
+				   widgetConfigLoaded="init()" 
+				   >
+    <fx:Script>
+        <![CDATA[
+			import com.esri.viewer.ViewerContainer;
+			
+			[Bindable]
+			private var plotSelect:Boolean = true; 
+			
+			[Bindable]private var heightWhole:Number=355;
+			[Bindable]private var heightSmall:Number=190;
+
+            private function init():void
+            {	
+				wTemplate.widgetIcon ="assets/images/yutu/动态标绘40.png";							
+				mapLoadHandler();
+				wTemplate.resizable = false;
+            }	
+			
+			
+			/**
+			 * 切换到绘制标绘视图  
+			*/
+			private function showDrawState(event:MouseEvent):void
+			{
+				this.currentState = "drawState";
+				wTemplate.selectedTitlebarButtonIndex = 0;
+			}
+			
+			
+			/**
+			 * 切换到标绘管理视图  
+			*/
+			private function showManagerState(event:MouseEvent):void
+			{
+				this.currentState = "managerState";
+				wTemplate.selectedTitlebarButtonIndex = 1;
+			}
+			
+			
+			/**
+			 * 派发地图 
+			*/
+			private function mapLoadHandler():void
+			{
+				ViewerContainer.dispatchEvent(new PlotEvent(PlotEvent.PLOT_MAP_LOADED, map));
+			}
+			
+
+
+
+			protected function wTemplate_openHandler(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				wTemplate.resizable = false;
+			}
+
+        ]]>
+    </fx:Script>
+	
+	
+	<viewer:WidgetTemplate id="wTemplate" open="wTemplate_openHandler(event)" width="242" height="{cbPropertySet.selected?heightWhole:heightSmall}">
+		<manager:DrawManager id="drawManager" />
+		<s:CheckBox label="属性设置" id="cbPropertySet"  x="5" y="115"/>
+		<manager:PlotManager id="plotManager" />
+	</viewer:WidgetTemplate>
+</viewer:BaseWidget>
+
+
+
+
+
+
+
+
+

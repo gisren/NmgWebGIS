@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 creationComplete="init()"
+		 >
+		
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.utils.Hashtable;
+			
+			import mx.charts.HitData;
+			import mx.charts.series.BarSeries;
+			import mx.collections.ArrayCollection;
+			import mx.graphics.GradientEntry;
+			import mx.graphics.LinearGradient;
+			
+			
+			[Bindable]
+			/**
+			 * 数据
+			 */
+			public var V_dataProvider:ArrayCollection = new ArrayCollection();
+			
+			
+			[Bindable]
+			/** 
+			 * 鼠标移动上时显示提示框 
+			 */
+			public var V_showDataTips:Boolean = true;
+			
+			
+			[Bindable]
+			/** 
+			 * 显示所有提示框 
+			 */
+			public var V_showAllDataTips:Boolean = false;
+			
+			
+			[Bindable]
+			/**
+			 * 图表标题
+			 */
+			public var V_title:String = "";
+			
+			
+			[Bindable]
+			/**
+			 * X轴上展示项的字段名 
+			 */
+			public var V_nameField:String = "";
+			
+			
+			/**
+			 * Y轴上要展示的数据项字段，数组格式
+			 */
+			public var V_valueFields:Array = new Array();
+			
+			
+			/**
+			 * V_valueFields 数据字段所对应名称的键值对儿 
+			 */
+			public var V_nameHashtable:Hashtable;
+			
+			
+			public var V_fillColors:Array = null;
+			
+			
+			private function init():void
+			{
+				var seriesArray:Array = new Array();
+				
+				for(var i:int=0; i<V_valueFields.length; i++) 
+				{
+					var barSeries:BarSeries = new BarSeries();
+					barSeries.xField = V_valueFields[i];
+					barSeries.displayName = V_valueFields[i];
+					
+					if(V_fillColors)
+					{
+						if(V_valueFields.length == 1)
+						{
+							var linearGradArray:Array = new Array();
+							
+							for(var n:int=0; n<V_fillColors.length; n++)
+							{
+								//渐变填充效果
+								var gradientEntry5:GradientEntry = new GradientEntry(V_fillColors[n], 0);
+								var gradientEntry6:GradientEntry = new GradientEntry(0, 1);
+								var linearGradient3:LinearGradient = new LinearGradient();
+								linearGradient3.entries = [gradientEntry5, gradientEntry6];
+								linearGradient3.rotation = 90;
+								
+								linearGradArray.push(linearGradient3);
+							}
+							barSeries.setStyle("fills", linearGradArray);
+						}
+						else
+						{
+							if(V_fillColors[i])
+							{
+								//渐变填充效果
+								var gradientEntry1:GradientEntry = new GradientEntry(V_fillColors[i], 0);
+								var gradientEntry2:GradientEntry = new GradientEntry(0, 1);
+								var linearGradient:LinearGradient = new LinearGradient();
+								linearGradient.entries = [gradientEntry1, gradientEntry2];
+								linearGradient.rotation = 90;
+								
+								barSeries.setStyle("fill", linearGradient);
+							}
+							else
+							{
+								var index:Number = i - V_fillColors.length;
+								
+								//渐变填充效果
+								var gradientEntry3:GradientEntry = new GradientEntry(V_fillColors[index], 0);
+								var gradientEntry4:GradientEntry = new GradientEntry(0, 1);
+								var linearGradient2:LinearGradient = new LinearGradient();
+								linearGradient2.entries = [gradientEntry3, gradientEntry4];
+								linearGradient2.rotation = 90;
+								
+								barSeries.setStyle("fill", linearGradient2);
+							}
+						}
+					}
+					seriesArray.push(barSeries);
+				}
+				barChart.series = seriesArray;
+				
+				if(V_nameHashtable)
+				{
+					barChart.dataTipFunction = reSetDataTip;
+				}
+			} 
+			
+			
+			/**
+			 * 功能：重新定义数据提示框中的内容 
+			 */
+			private function reSetDataTip(hitData:HitData):String
+			{
+				var key:String = hitData.element["yField"];
+				
+				var name:String = V_nameHashtable.find(key);
+				
+				var toopTip:String = name + "\n" + hitData.item[V_nameField] + "\n" + hitData.item[key];
+				
+				return toopTip;
+			} 
+			
+		]]>
+	</fx:Script>
+	
+	
+	<mx:BarChart id="barChart" 
+					height="100%" width="100%"  
+					dataProvider="{V_dataProvider}"
+					showDataTips="{V_showDataTips}"
+					showAllDataTips="{V_showAllDataTips}" 
+					fontSize="12"
+					>
+		
+		<mx:verticalAxis>
+			<mx:CategoryAxis id="categoryAxis" 
+							 title="{V_title}" 
+							 categoryField="{V_nameField}"
+							 />
+		</mx:verticalAxis>
+		
+	</mx:BarChart>
+	
+	
+	
+</s:Group>

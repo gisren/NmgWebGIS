@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" ?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//作者： jyx 
+//时间：2012年08月10日
+//配置文件 defaultbuffdistance单位:公里
+////////////////////////////////////////////////////////////////////////////////
+-->
+<configuration>
+	<baseconfig defaultbuffdistance="1000" mapServerUrl="http://yutu423/ARCGIS/REST/services/JiLin/MapServer" 
+	geomertryservice="http://yutu423/ArcGIS/rest/services/Geometry/GeometryServer" 
+	lineColor="0xff0000" lineAlpha="1" lineWidth="2" fillColor="" fillAlpha="0"  mapunit="度"
+	 resultLayer="anlyseLayer" bufferLayer="bufferLayer" layerMinScale="0.1"  layerMaxScale="0.00001"
+	pageSize="5"/>
+	<Image hcImg="assets/images/cn.png" gridImg="assets/images/i_table.png" clearImg="assets/images/i_clear.png"/>
+	<layers>
+	  	<layer name="旅游景点"  idno="2" img="assets/images/cn.png" imgHeight="24" imgWidth="24">
+	  		<field name="NAME" description="名称"/>
+	  		<field name="CLASS" description="类型"/>
+	  </layer>
+	  
+	</layers>
+</configuration>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" ?>
+<configuration>
+	
+	
+	<!-- 轨迹回放数据中的经纬度字段 -->
+	<historyViewLongitudeField>X</historyViewLongitudeField>
+	<historyViewLatitudeField>Y</historyViewLatitudeField>
+	<historyViewLocateTime>LocatedTime</historyViewLocateTime>
+	<historyViewLocateMsgField>LocatedMsg</historyViewLocateMsgField>
+	
+	<!-- 轨迹回放中的参数 moveSpeed为timer刷新频率1000为一秒刷新一次-->
+	<raisMoveParam mapExtent="8" moveSpeed="30" lineColor="0xff0000" lineAlpha="1" lineWidth="3"/>
+
+	<!-- 轨迹回放中的图标 -->
+	<historyViewMoveSymURL>assets/yutuImages/track/CarEast.gif</historyViewMoveSymURL>
+	<!--起点图标-->
+	<startSymURL>assets/yutuImages/track/trace1.gif</startSymURL>
+	<!--终点图标-->
+	<stopSymURL>assets/yutuImages/track/trace2.gif</stopSymURL>
+	<!--视频图标-->
+	<ViewImageURL onClick="videoPicClick">assets/yutuImages/track/trace2.gif</ViewImageURL>
+	<!--每次移动距离-->
+	<MoveDistance>1</MoveDistance>
+	<exInterface>
+	
+		<!--
+		接口名称：显示轨迹移动窗口，并为下拉列表赋值
+		参数结构：
+				{
+					trackWindow:{ isHaveReal:_, trackCallback:_, realCallback:_ },
+					listData:[{id:_, name:_ },{...}...]
+				}
+		-->
+		<trackWindowParam>showTrackWindow</trackWindowParam>
+		
+		
+		<trackWindowParamStr>showTrackWindowStr</trackWindowParamStr>
+		
+		<trackWindowTest>test</trackWindowTest>
+		
+		<!--
+		接口名称：显示轨迹移动窗口，并为下拉列表赋值
+		参数结构：
+				[
+					[
+						{id:_,X:_,Y:_, pic:_, name:_,info:_},
+						...
+					],
+					[
+						...
+					]
+				]
+		-->
+		<trackPlayParam>trackPlay</trackPlayParam>
+		
+		
+		
+		<!--
+		接口名称：显示轨迹移动窗口，并为下拉列表赋值
+		参数结构：
+				[
+					{id:_,X:_,Y:_, pic:_, name:_,info:_},
+					{...},
+					...
+				]
+		-->
+		<realLocateParam>realLocate</realLocateParam>
+		
+	</exInterface>
+	
+	
+	
+	<!-- {SIM_ID:_,ID:_,Name:_,CarNo:_,CarType:_,DriverNameA:_ ,TellPhoneA:_,X:_,Y:_,LocatedTime:_,CarSpeed:_}, -->
+	
+</configuration>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

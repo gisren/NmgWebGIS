@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%" creationComplete="init()">
+	<mx:Script>
+		<![CDATA[
+			import mx.charts.ChartItem;
+			import mx.charts.chartClasses.Series;
+			import mx.charts.series.ColumnSeries;
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.graphics.IFill;
+			import mx.graphics.SolidColor;
+			
+			[Bindable]
+			public var V_ChartData:ArrayCollection = new ArrayCollection();
+			
+			[Bindable]
+			public var V_title:String = "";
+			
+			[Bindable]
+			public var V_xField:String = "";
+			
+			[Bindable]
+			public var V_seriesField:String = "";
+			
+			public var V_dataField:String = "";
+			public var V_nameField:String = "";
+			public var V_colorField:String = "";
+			public var V_toolTipField:String = "";
+			
+			
+			
+			private function init():void
+			{
+				resetData();
+				
+				createSeriesList();
+				
+				setTitle();
+			}
+			
+			
+			private function setTitle():void
+			{
+				if(V_title)
+				{
+					categoryAxis.title = V_title;
+				}
+			}
+			
+			
+			/**
+			 * 整理数据
+			 */
+			private function resetData():void
+			{
+				for(var i:int=0; i<V_ChartData.length; i++)
+				{
+					var itemObj:Object = V_ChartData[i];
+					
+					var seriesData:Array = itemObj[V_seriesField];
+					
+					for(var n:int=0; n<seriesData.length; n++)
+					{
+						var seriesObj:Object = seriesData[n];
+						
+						var data:String = seriesObj[V_dataField];
+						itemObj["data" + n.toString()] = data;
+						
+						var color:String = seriesObj[V_colorField];
+						itemObj["color" + n.toString()] = color;
+						
+						/* 
+						lxl 20120218 将名称和提示信息的数据也提取到上一级中
+						
+						var name:String = seriesObj[V_nameField];
+						itemObj["name" + n.toString()] = name;
+						
+						var toolTip:String = seriesObj[V_toolTipField];
+						itemObj["toolTip" + n.toString()] = toolTip;
+						*/
+						
+					}
+				}
+			}
+			
+			
+			/**
+			 * 组织显示序列
+			*/
+			private function createSeriesList():void
+			{
+				var seriesArray:Array = new Array();
+				
+				/* 
+				根据第一组的序列数添加序列
+				*/
+				var seriesData:Array = V_ChartData[0][V_seriesField];
+				
+				for(var n:int=0; n<seriesData.length; n++)
+				{
+					var seriesObj:Object = seriesData[n];
+					
+					var columnSeries:ColumnSeries = new ColumnSeries();
+					
+					columnSeries.yField = "data" + n.toString();
+					
+					columnSeries.displayName = seriesObj[V_nameField];
+					
+					//lxl 20120218 鼠标移动到图标上时鼠标旁边的提示信息
+					//columnSeries.toolTip = seriesObj[V_toolTipField];
+					
+					if(seriesData.length == 1)
+					{
+						columnSeries.fillFunction = colorFunction;
+					}
+					else
+					{
+						columnSeries.setStyle("fill",seriesObj[V_colorField]);
+					}
+					
+					seriesArray.push(columnSeries);
+				}
+				
+				chart.series = seriesArray;
+			}
+			
+			
+			/**
+			 * 自定义单列颜色  
+			*/
+			private function colorFunction(element:ChartItem,index:Number):IFill
+			{
+				var color:Number = element.item["color0"];
+				
+				return new SolidColor(color, 1);
+			}
+			
+			
+			
+		]]>
+	</mx:Script>
+ 
+	<mx:ColumnChart id="chart" height="{this.height}" width="{this.width}"  dataProvider="{V_ChartData}" alpha="0.75"  
+					showDataTips="true" fontSize="12" fontWeight="bold"  color="#000000"   fontFamily="Arial" columnWidthRatio=".75" 
+					>
+		
+		<mx:horizontalAxis>
+			<mx:CategoryAxis id="categoryAxis" categoryField="{V_xField}" />
+		</mx:horizontalAxis>
+		
+		<!--<mx:series>
+			<mx:ColumnSeries V_xField="{V_xField}" V_yField="{V_yField}" fillFunction="fullColor" dataFunction="seleteData" >
+				<mx:fill>
+					<mx:LinearGradient id="linearGradient">
+						<mx:entries>
+							<mx:Array>
+								<mx:GradientEntry color="red"
+												  ratio="0.0"
+												  alpha="1.0" />
+								<mx:GradientEntry color="#000000"
+												  ratio="1.0"
+												  alpha="1.0" />
+							</mx:Array>
+						</mx:entries>
+					</mx:LinearGradient>
+				</mx:fill>
+			</mx:ColumnSeries>
+		</mx:series>-->
+		
+		<mx:horizontalAxisRenderer>
+			<mx:AxisRenderer visible="true"> 
+				<mx:axisStroke>
+					<mx:SolidColorStroke caps="square" color="#09C81D" weight="4"/>
+				</mx:axisStroke>
+			</mx:AxisRenderer>
+		</mx:horizontalAxisRenderer>
+		
+		<mx:verticalAxisRenderer>
+			<mx:AxisRenderer visible="true">
+				<mx:axisStroke>
+					<mx:SolidColorStroke caps="square" color="#09C81D" weight="4"/>
+				</mx:axisStroke>
+			</mx:AxisRenderer>
+		</mx:verticalAxisRenderer>
+		
+	</mx:ColumnChart>
+	
+	
+</mx:Canvas>

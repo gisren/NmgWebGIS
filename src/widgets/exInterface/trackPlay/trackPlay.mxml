@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:esri="http://www.esri.com/2008/ags"
+				   xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:viewer="com.esri.viewer.*"
+				   widgetConfigLoaded="init()" 
+				   xmlns:track="widgets.exInterface.trackPlay.track.*" 
+				   xmlns:real="widgets.exInterface.trackPlay.real.*" 
+				   >
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.utils.JSON;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			import com.esri.viewer.WidgetStates;
+			import com.mapUni.BaseClass.MapUni;
+			
+			import mx.controls.Alert;
+			
+			
+			/**
+			 * 事件：初始化模块
+			 */
+			private function init():void
+			{
+				var trackWindowName:String = configXML.exInterface.trackWindowParam;
+				var trackWindowNameStr:String = configXML.exInterface.trackWindowParamStr;
+				ExternalInterface.addCallback(trackWindowName, getWindowParam);
+				
+				ExternalInterface.addCallback(trackWindowNameStr, getWindowParamStr);
+				
+				trackCom.map = map;
+				trackCom.configXMLData = configXML;
+				
+				realCom.map = map;
+				realCom.configXMLData = configXML;
+				ExternalInterface.call("test");
+				
+			}
+			
+			private var getSelectItemDataFunc:String;
+			
+			private function getWindowParamStr(value:String):void
+			{
+				var object:Object = null;
+				try
+				{
+					object = JSON.decode(value);
+				}
+				catch(e:Error)
+				{
+					MapUni.errorWindow("数据格式不对" + e.toString());
+				}
+				
+				if(object)
+				{
+					getWindowParam(object);
+				}
+			}
+			
+			private static var isLoadTitle:Boolean = false;
+			
+			/**
+			 * 事件：获取车辆数据 
+			 */
+			private function getWindowParam(dataObj:Object):void
+			{
+				
+				if(dataObj)
+				{
+					
+					wTemplate.visible = true;
+//					setState(WidgetStates.WIDGET_OPENED);
+					
+					ViewerContainer.dispatchEvent(new AppEvent(AppEvent.WIDGET_RUN, widgetId));
+					
+					
+					var windowParam:Object = dataObj.trackWindow;
+					if(windowParam)
+					{
+						trackCom.callbackName = windowParam.trackCallback;
+						realCom.callbackName = windowParam.realCallback;
+						
+						var isHaveReal:Boolean = windowParam.isHaveReal;
+						
+						if(isHaveReal)
+						{
+							if(!isLoadTitle)
+							{
+								wTemplate.addTitlebarButton("assets/yutuImages/widgetIcon/历史轨迹.png", "历史轨迹", onTrackButtonClick);
+								wTemplate.addTitlebarButton("assets/yutuImages/widgetIcon/实时轨迹.png", "实时监控", onRealButtonClick);
+								
+								isLoadTitle = true;
+							}
+						}
+						else
+						{
+							wTemplate.removeAllTitleBar();
+							onTrackButtonClick();
+							isLoadTitle = false;
+						}
+					}
+					
+					trackCom.listData = dataObj.listData;
+					realCom.listData = dataObj.listData;
+				}
+			}
+			
+			
+			private function onTrackButtonClick():void
+			{
+				this.currentState = "trackState";
+			}
+			
+			private function onRealButtonClick():void
+			{
+				this.currentState = "realState";
+			}
+			
+			
+			/**
+			 * 事件：打开模块
+			 */
+			private function widgetOpenedHandler():void
+			{
+				
+			}
+			
+			
+			/**
+			 * 事件：关闭模块 
+			 */
+			private function widgetClosedHandler():void
+			{
+				trackCom.clear();
+				realCom.clear();
+			}
+		]]>
+	</fx:Script>
+	
+	
+	
+	<viewer:states>
+		<s:State name="trackState" />
+		<s:State name="realState" />
+	</viewer:states>
+	
+	<viewer:transitions>
+		<s:Transition autoReverse="true" toState="*">
+			<s:Fade targets="{[trackCom, realCom]}"/>
+		</s:Transition>
+	</viewer:transitions>
+	
+	
+	<viewer:WidgetTemplate id="wTemplate" visible="false"
+						   width="355" height="163"
+						   closed="widgetClosedHandler()"
+						   open="widgetOpenedHandler()" >
+		<track:trackCom id="trackCom" 
+						width="100%" height="100%" 
+						visible.realState="false" 
+						/>
+		<real:realCom id="realCom" 
+					  width="100%" height="100%" 
+					  visible.trackState="false"
+					  />
+	</viewer:WidgetTemplate>
+</viewer:BaseWidget>
+

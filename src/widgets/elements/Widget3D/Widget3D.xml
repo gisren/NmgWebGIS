@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<configuration>
+
+    <widgetTemplate width="600" height="600" />
+    
+    <server3dLabel>map3d</server3dLabel>
+    
+    <layers>
+	    <layer id="factory" mapLabel="map3d" layerName="工厂企业" nameField="NAME" />
+	    <layer id="bulding" mapLabel="map3d" layerName="建筑物区域" nameField="NAME" />
+	</layers>
+    
+</configuration>
+

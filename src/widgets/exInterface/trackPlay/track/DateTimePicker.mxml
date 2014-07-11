@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" 
+		   cornerRadius="5"
+		   height="24"  width="240"
+		   verticalScrollPolicy="off"
+		   horizontalScrollPolicy="off" 
+		   resize="onResize()" 
+		   creationComplete="onCreateComplete()"
+		   >
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.controls.*;
+			import mx.core.mx_internal;
+			import mx.formatters.*;
+			
+		    [Bindable]  
+			public var pStartDate:Date;
+			 
+			[Bindable]  
+			public  var pEndDate:Date;
+			 
+			private function onResize():void
+ 			{
+				if(theDate.width<=0 && this.width==this.measuredWidth)
+				{
+					return;
+				} 
+				if(this.width>0 && this.measuredWidth>0)
+  				{
+					theDate.width+=this.width-this.measuredWidth;
+				}		
+			}
+			
+			public function onCreateComplete():void
+            {
+				onResize();
+				 
+				var fr:DateFormatter=new DateFormatter();
+                fr.formatString="YYYY-MM-DD";
+				if(pStartDate != null)
+				{
+	                theDate.text =fr.format(pStartDate); 	                
+	                theHour.value=pStartDate.getHours();
+					theMinute.value = pStartDate.getMinutes();
+				}
+				if(pEndDate != null)
+				{
+					theDate.text =fr.format(pEndDate); 	                
+					theHour.value=pEndDate.getHours();
+					theMinute.value = pEndDate.getMinutes();
+				}
+			}
+			
+			public function setDateTime(date:String):void
+			{
+				try
+				{
+					var pArray:Array=date.split(' '); 
+				    var pSubArray:Array=pArray[1].split(':');
+					this.theDate.text=pArray[0].toString();
+					this.theHour.value=Number(pSubArray[0]);
+					this.theMinute.value = Number(pSubArray[1]);
+				}
+				catch(e:Error)
+				{
+					
+				}
+			}
+			
+			public function getDateTime():String
+			{
+				return this.theDate.text+" "+this.theHour.value.toString()+" "+this.theMinute.value.toString();
+			}
+			
+			
+			/**
+			 * <p>功能：设置时间控件的时间</p>
+			 * @param date 要设置的时间的Date格式数据
+			*/
+			public function setDateTimeOfDateFormat(date:Date):void
+			{
+				this.theHour.value = date.getHours();
+				this.theMinute.value = date.getMinutes();
+				this.theDate.selectedDate = date;
+			}
+			
+			
+			/**
+			 * 功能：获取Date格式的所选择的时间
+			 * 返回值：当前所选择时间，日期格式 
+			*/
+			public function getDateTimeOfDateFormat():Date
+			{
+				var selectedTime:Date = new Date();
+				
+				if(this.theDate.selectedDate)
+				{
+					selectedTime = this.theDate.selectedDate;
+				}
+				
+				var selectedHour:Number = this.theHour.value;
+				selectedTime.hours = selectedHour;
+				
+				
+				var selectedMinute:Number = this.theMinute.value;
+				selectedTime.minutes = selectedMinute;
+				
+				return selectedTime;
+			} 
+		]]>
+	</mx:Script>	
+	
+	<mx:HBox horizontalGap="3" verticalAlign="middle">
+		<mx:DateField id="theDate" yearNavigationEnabled="true"    
+					  dayNames="['日','一','二','三','四','五','六']" 
+					  monthNames="['一','二','三','四','五','六','七','八','九','十','十一','十二']"  
+					  formatString="YYYY-MM-DD" width="100" color="0xFFFFFF"/>
+		<mx:NumericStepper minimum="0" maximum="23" stepSize="1" maxChars="2" id="theHour" width="45"/>
+		<mx:Label text="时"/>
+		<mx:NumericStepper minimum="0" maximum="60" stepSize="1" maxChars="2" id="theMinute" width="45"/>
+		<mx:Label text="分"/>
+	</mx:HBox>
+</mx:Canvas>
+

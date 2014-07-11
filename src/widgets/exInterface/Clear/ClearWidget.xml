@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+<configuration>
+	<externalInterface>
+	
+		<!--  
+		
+			名称：图例编辑
+	    	
+	    	接口：MapClear
+	    	
+	    	参数：JsonData:String  数据集(json格式对象)
+	    	
+	    	数据结构：	{
+							layer:{enable:_, name:_, clearAll:_},
+							legend:{enable:_, name:_, clearAll:_},
+							infoWindow:{enable:_}
+						}
+	    	
+	    	数据说明：	整个json数据为一个对象，对象为一组对地图个方面清除的操作，对象中包含下列属性：
+	    	
+	    				layer：清空图层。enable为是否要使用这一属性，默认为false；name为要清除的图层名称有：chart(统计图表),point(点),render(地图渲染)，如果准备只是清空一个图层的话，需要将clearAll设为false或不写；clearAll为清空所有图层，可设置为true或false。
+		    			
+		    			legend：删除某一图层的图例。enable为是否要使用这一属性,默认为false； name:为要清除的一组图例名称，具体值为添加图例时传入的值,如果准备只删除一组图例，那么clearAll需要设为false或不写； clearAll是清空所以图例。
+		    			
+		    			infoWindow：清除地图信息窗口，enable为是否要使用这一属性,默认为false；
+		    			
+	    				
+	    	示例：  JsonData = "{"searchExtent":{"layerName":"js_市界","searchWhere":"Name = '南京市'","enable":true},"setExtent":{"Xmax":118.738793557,"Ymax":32.0527799120504,"Ymin":32.0489906203987,"enable":true,"Xmin":118.7326426503}}";
+					MapPoint(JsonData)
+					
+					MapPoint()
+	    	
+		 	备注：	layer、legend 和 infoWindow 这三个属性分别为三个独立的方法，需要哪个属性的操作时再传入那个属性。
+		 			如果传入了多个，则系统都会执行。
+		 			
+		 			如果不传任何参数，系统会清空所有的图层、所有的图例和所有的地图信息窗口。
+		-->
+		<exMapClear>MapClear</exMapClear>
+		
+		
+		
+	</externalInterface>
+	
+</configuration>

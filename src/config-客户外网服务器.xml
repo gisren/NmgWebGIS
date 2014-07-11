@@ -1,0 +1,157 @@
+﻿<?xml version="1.0" ?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+//	辽宁移动执法 内嵌地图
+// 
+// 	中科宇图.环保事业部
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<configuration>
+
+    <style>
+        <colors>0xCEE7F4,0x2D91CC,0x355D89,0x294867,0xCEE7F4</colors><!--文本颜色，背景颜色，鼠标移入颜色，鼠标选中颜色，标题颜色-->
+        <alpha>0.75</alpha>
+    </style>
+
+    <!-- UI elements -->
+    <!-- widget left="0"  top="0"    config="widgets/elements/TitleController/TitleControllerWidget.xml" url="widgets/elements/TitleController/TitleControllerWidget.swf"/-->
+    <widget right="10"  top="30"    config="widgets/elements/Navigation/NavigationWidget.xml" url="widgets/elements/Navigation/NavigationWidget.swf"/>
+    <widget right="30" top="13"    config="widgets/elements/MapSwitcher/MapSwitcherWidget.xml" url="widgets/elements/MapSwitcher/MapSwitcherWidget.swf"/>
+    <widget right="145"  top="40"    config="widgets/elements/HeaderController/HeaderControllerWidget.xml" url="widgets/elements/HeaderController/HeaderControllerWidget.swf"/>
+	<widget left="5"   bottom="1"  config="widgets/elements/Coordinate/CoordinateWidget.xml" url="widgets/elements/Coordinate/CoordinateWidget.swf"/>
+	<widget right="-2" bottom="-2" config="widgets/elements/Legend/LegendWidget.xml" url="widgets/elements/Legend/LegendWidget.swf"/>
+	<!--<widget right="-2" bottom="-2" config="widgets/OverviewMap/OverviewMapWidget.xml" url="widgets/OverviewMap/OverviewMapWidget.swf"/>-->
+    
+    <!-- 地图 -->
+    <map wraparound180="false" top="0" esrilogovisible = "false" dyUrl="true"
+      initialextent="117.85724552130428 39.13133923227872 126.2457837898531 43.43769569129439"
+      fullextent="115.762595405542 37.8892306682824 129.051885123104 44.8491541103359" >
+        
+        <!-- 基础地图 -->
+        <basemaps>
+            <layer label="地图"  type="tiled" visible="true" name="map"
+                   url="http://218.60.147.63/ArcGIS/rest/services/LNMap/MapServer"
+                   />
+        </basemaps>
+        
+        <!-- 附加地图 -->
+        <operationallayers>
+        
+        </operationallayers>
+    </map>
+    
+    
+    <!-- 应用服务 -->
+    <webService>
+    
+    	<!-- 几何服务 -->
+    	<service name="geometryService" url="http://192.168.0.247/ArcGIS/rest/services/Geometry/GeometryServer" />
+    
+    </webService>
+    
+
+	<!-- 模块管理 -->
+    <widgetcontainer layout="float">
+                
+        <!-- 工具栏各模块 -->
+        
+        <widget label="测量"
+        		position="toolBar"
+        		icon="assets/yutuImages/toolBar/draw.png"
+        		wIcon="assets/yutuImages/widgetLogo/测量.png"
+        		right = "90" top = "150" 
+                config="widgets/toolBar/Draw/DrawWidget.xml"
+                url="widgets/toolBar/Draw/DrawWidget.swf"/>
+                />
+        <widget label="搜索" 
+        		position="toolBar"
+        		right = "100" top = "140"
+                icon="assets/yutuImages/toolBar/search.png"
+                wIcon="assets/yutuImages/widgetLogo/搜索.png"
+                config="widgets/toolBar/Search/SearchWidget.xml"
+                url="widgets/toolBar/Search/SearchWidget.swf"
+                />
+        <widget label="空间查询" 
+    			position="toolBar"
+    			right = "70" top = "110"
+                icon="assets/yutuImages/toolBar/buffer.png"
+                config="widgets/toolBar/Buffer/BufferWidget.xml"
+                url="widgets/toolBar/Buffer/BufferWidget.swf"
+                />
+        <widget label="截图" 
+        		position="toolBar"
+        		left="0"  top="0" 
+        		icon="assets/yutuImages/toolBar/screenshot.png"
+        		config="widgets/toolBar/Screenshot/ScreenshotWidget.xml"
+                url="widgets/toolBar/Screenshot/ScreenshotWidget.swf"
+                />
+        <widget label="车辆定位" name="carLocate" 
+        		position="toolBar"
+                icon="assets/yutuImages/toolBar/车辆定位.png"
+                callback="toolbarButtonCallback"
+                />
+        <widget label="人员定位" name="personLocate" 
+        		position="toolBar"
+                icon="assets/yutuImages/toolBar/人员定位.png"
+                callback="toolbarButtonCallback"
+                />
+        <widget label="网格化管理" 
+           		position="toolBar"
+           		 icon="assets/yutuImages/proIcon/网格化管理.png"
+           		 wIcon="assets/yutuImages/proIcon/网格化管理.png"
+	       		 config="widgets/exInterface/Reseau/ReseauWidget.xml"
+	       		 url="widgets/exInterface/Reseau/ReseauWidget.swf"
+	       		 />
+	    <widget label="污染源管理"        
+           		 position="toolBar" preload="open"
+           		 icon="assets/yutuImages/proIcon/污染源管理.png"
+           		 wIcon="assets/yutuImages/proIcon/污染源管理.png"
+	       		 config="widgets/exInterface/PolluteManager/PolluteWidget.xml"
+	       		 url="widgets/exInterface/PolluteManager/PolluteWidget.swf"
+	       		 />
+	       		 
+	     <!--<widget label="统计" 
+           		 position="toolBar"
+           		 icon="assets/yutuImages/proIcon/污染源管理.png"
+	       		 config="widgets/exInterface/StatisticalAnalysis/StatisticalWidget.xml"
+	       		 url="widgets/exInterface/StatisticalAnalysis/StatisticalWidget.swf"
+	       		 />-->
+	       		 
+	    <widget label="清空" name="clear" 
+        		position="toolBar"
+                icon="assets/yutuImages/toolBar/clear.png"
+                />
+              
+ 
+        
+        <!-- 对外接口功能各模块 -->
+
+      
+        <widget label="周边缓冲" 
+              config="widgets/exInterface/Point/PointWidget.xml"
+              url="widgets/exInterface/Point/PointWidget.swf"
+         />
+ 
+        <widget label="清除地图" 
+        		preload="open"
+                config="widgets/exInterface/Clear/ClearWidget.xml"
+                url="widgets/exInterface/Clear/ClearWidget.swf"
+                />
+                
+       
+        <widget label="地图区域渲染" 
+        		preload="open"
+                config="widgets/exInterface/Rendering/MapRendering.xml"
+                url="widgets/exInterface/Rendering/MapRendering.swf"
+                />
+                
+        <widget label="添加点" 
+        		preload="open"
+                config="widgets/exInterface/Point/PointWidget.xml"
+                url="widgets/exInterface/Point/PointWidget.swf"
+                />
+     
+    </widgetcontainer>
+</configuration>

@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 xmlns:plotapi="com.esrichina.demo.plotapi.*"
+		 xmlns:EnvPlot="widgets.exInterface.EnvPlot.*"
+		 creationComplete="init()"
+		 >
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.symbols.SimpleFillSymbol;
+			import com.esri.viewer.ViewerContainer;
+			import com.esrichina.dynamicplot.symbols.GradientColorFillSymbol;
+			
+			import mx.collections.ArrayCollection;
+			
+			import widgets.exInterface.EnvPlot.PlotEvent;
+			
+			[Bindable]
+			private var fillStyles:ArrayCollection=new ArrayCollection(["null", "solid", "backwarddiagonal", "cross", "diagonalcross", "forwarddiagonal", "horizontal", "vertical"]);
+			
+			[Bindable]
+			private var fillStyleAlias:ArrayCollection = new ArrayCollection(["无", "纯色", "上斜线", "正网格", "斜网格", "下斜线", "水平线", "垂直线"]);
+			
+			
+			private function init():void
+			{
+				ViewerContainer.addEventListener(PlotEvent.PLOT_SELECTED, plotSelectHandler);
+				changeHandler();
+			}
+			
+			
+			/**
+			 * 改变样式后派发
+			*/
+			private function changeHandler(event:Event=null):void
+			{
+				if(this.currentState == "singleColorFill")
+				{
+					var singleParam:Object = 
+						{
+							fillType: "singleColor",
+							fillColor: fillColor.value,
+							fillAlpha: fillAlpha.value,
+							fillStyle: this.fillStyles.getItemAt(this.fillStyleAlias.getItemIndex(fillStyle.selectedItem))
+						};
+					
+					ViewerContainer.dispatchEvent(new PlotEvent(PlotEvent.FILL_SYMBOL_CHANGE, singleParam));
+				}
+				else
+				{
+					var gradientParam:Object = 
+						{
+							fillType: "gradientColor",
+							color1: fillColorG1.value,
+							color2: fillColorG2.value,
+							fillAlpha: fillAlphaG.value
+						};
+					
+					ViewerContainer.dispatchEvent(new PlotEvent(PlotEvent.FILL_SYMBOL_CHANGE, gradientParam));
+				}
+			}
+			
+			
+			/**
+			 * 改变填充类型，单色、渐变 
+			*/
+			private function fillChoseHandler(event:Event):void
+			{
+				switch(event.currentTarget)
+				{
+					case rb1:
+						this.currentState = "singleColorFill";
+						changeHandler()
+						break;
+					case rb2:
+						this.currentState = "gradientColorFill";
+						changeHandler();
+						break;
+				}
+			}
+			
+			
+			/**
+			 * 显示已选择的标绘的样式
+			*/
+			private function plotSelectHandler(event:PlotEvent):void
+			{
+				var plot:Graphic = event.data as Graphic;
+				if(plot.symbol is SimpleFillSymbol)
+				{
+					this.currentState = "singleColorFill";
+					rb1.selected = true;
+					var sfs:SimpleFillSymbol = plot.symbol as SimpleFillSymbol;
+					fillColor.selectedColor = sfs.color;
+					fillAlpha.value = sfs.alpha;
+					fillStyle.selectedItem = this.fillStyleAlias.getItemAt(this.fillStyles.getItemIndex(sfs.style));
+				}
+				else if(plot.symbol is GradientColorFillSymbol)
+				{
+					this.currentState="gradientColorFill";
+					rb2.selected = true;
+					var gcfs:GradientColorFillSymbol = plot.symbol as GradientColorFillSymbol;
+					fillColorG1.selectedColor = gcfs.color1;
+					fillColorG2.selectedColor = gcfs.color2;
+					fillAlphaG.value = gcfs.alpha;
+				}
+			}
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<s:State name="singleColorFill"/>
+		<s:State name="gradientColorFill"/>
+	</s:states>
+	
+	
+	<mx:VBox width="100%" height="100%" label="填充">
+		<s:HGroup>
+			<s:RadioButton id="rb1" label="单色填充" click="fillChoseHandler(event)"
+						   selected="true"/>
+			<s:RadioButton id="rb2" label="渐变填充" click="fillChoseHandler(event)"/>
+		</s:HGroup>
+		
+		<s:Group width="100%" height="100%">
+			<s:VGroup includeIn="singleColorFill" width="100%" height="100%">
+				<s:HGroup width="100%" gap="16" verticalAlign="middle">
+					<s:Label text="颜    色"/> 
+					<mx:ColorPicker id="fillColor" change="changeHandler(event)"
+									selectedColor="0xff0000"/>
+				</s:HGroup>
+				<s:HGroup width="100%" gap="16" verticalAlign="middle">
+					<s:Label text="透明度"/>
+					<mx:NumericStepper id="fillAlpha" change="changeHandler(event)"
+									   maximum="1.00" minimum="0.10" stepSize="0.10"
+									   value="0.80"/>
+				</s:HGroup>
+				<s:HGroup width="100%" gap="16" verticalAlign="middle">
+					<s:Label text="类    型"/>
+					<s:ComboBox id="fillStyle" width="90"
+								change="changeHandler(event)"
+								dataProvider="{fillStyleAlias}" selectedIndex="1"/>
+				</s:HGroup>
+			</s:VGroup>
+			
+			<s:VGroup includeIn="gradientColorFill" width="100%" height="100%">
+				<s:HGroup width="100%" gap="16" verticalAlign="middle">
+					<s:Label text="颜色一"/>
+					<mx:ColorPicker id="fillColorG1" change="changeHandler(event)"
+									selectedColor="0xff0000"/>
+				</s:HGroup>
+				<s:HGroup width="100%" gap="16" verticalAlign="middle">
+					<s:Label text="颜色二"/>
+					<mx:ColorPicker id="fillColorG2" change="changeHandler(event)"
+									selectedColor="0xffff00"/>
+				</s:HGroup>
+				<s:HGroup width="100%" gap="16" verticalAlign="middle">
+					<s:Label text="透明度"/>
+					<mx:NumericStepper id="fillAlphaG" change="changeHandler(event)"
+									   maximum="1" minimum="0.1" stepSize="0.1" value="0.8"/>
+				</s:HGroup>
+			</s:VGroup>
+		</s:Group>
+	</mx:VBox>
+	
+</s:Group>

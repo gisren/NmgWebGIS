@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 xmlns:supportClasses="com.esri.ags.skins.supportClasses.*" 
+		 width="200" height="170">
+	<s:layout>
+		<supportClasses:AttachmentLayout/>
+	</s:layout>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			[Bindable]
+			public var title:String;
+			[Bindable]
+			public var description:String;	
+			[Bindable]
+			private var _attributes:Object;
+			
+			public function set attributes(attrs:Object):void{
+				this._attributes=attrs;
+				if(!this._attributes.CarType){
+					this._attributes.CarType="--";
+				}
+				if(!this._attributes.DriverNameA){
+					this._attributes.DriverNameA="--";
+				}
+				if(!this._attributes.TellPhoneA){
+					this._attributes.TellPhoneA="--";
+				}
+				if(!this._attributes.CarSpeed){
+					this._attributes.CarSpeed="--";
+				}
+				if(!this._attributes.CarDirection){
+					this._attributes.CarDirection="--";
+				}
+				if(!this._attributes.LocatedTime){
+					this._attributes.LocatedTime="--";
+				}
+				if(!this._attributes.LocatedMsg){
+					this._attributes.LocatedMsg="--";
+				}
+			}
+		]]>
+	</fx:Script>
+	
+	<s:VGroup>		
+		<s:Label  id="titleLabel" text="{title}" color="0xEFDEEF"  fontSize="14">			
+		</s:Label>
+		<mx:HRule width="160">			
+		</mx:HRule>	
+<!--		<s:HGroup verticalAlign="bottom">			
+			<mx:Image  source="@Embed(source='assets/yutuImages/track/0.png')">			
+			</mx:Image>
+			<s:Label  text="{_attributes.CarNo}" color="0xEFDEEF" fontSize="14"></s:Label>
+		</s:HGroup>-->
+		<s:HGroup verticalAlign="bottom">			
+			<mx:Image  source="@Embed(source='assets/yutuImages/track/1.png')">			
+			</mx:Image>
+			<s:Label  text="{_attributes.CarType}" color="0xEFDEEF" fontSize="14"></s:Label>
+		</s:HGroup>
+		<s:HGroup verticalAlign="bottom">			
+			<mx:Image  source="@Embed(source='assets/yutuImages/track/2.png')">			
+			</mx:Image>
+			<s:Label  text="{_attributes.DriverNameA}" color="0xEFDEEF" fontSize="14"></s:Label>
+		</s:HGroup>
+		<s:HGroup verticalAlign="bottom">			
+			<mx:Image  source="@Embed(source='assets/yutuImages/track/3.png')">			
+			</mx:Image>
+			<s:Label  text="{_attributes.TellPhoneA}" color="0xEFDEEF" fontSize="14"></s:Label>
+		</s:HGroup>
+		<s:HGroup verticalAlign="bottom">			
+			<mx:Image  source="@Embed(source='assets/yutuImages/track/4.png')">			
+			</mx:Image>
+			<s:Label  text="{_attributes.CarSpeed}" color="0xEFDEEF" fontSize="14"></s:Label>
+		</s:HGroup>
+		<s:HGroup verticalAlign="bottom">			
+			<mx:Image  source="@Embed(source='assets/yutuImages/track/5.png')">			
+			</mx:Image>
+			<s:Label  text="{_attributes.CarDirection}" color="0xEFDEEF" fontSize="14"></s:Label>
+		</s:HGroup>
+		<s:HGroup verticalAlign="bottom">			
+			<mx:Image  source="@Embed(source='assets/yutuImages/track/6.png')">			
+			</mx:Image>
+			<s:Label  text="{_attributes.LocatedTime}" color="0xEFDEEF" fontSize="14"></s:Label>
+		</s:HGroup>
+	</s:VGroup>
+</s:Group>

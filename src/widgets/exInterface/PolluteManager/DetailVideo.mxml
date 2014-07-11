@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:TitleWindow xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			   xmlns:s="library://ns.adobe.com/flex/spark" 
+			   xmlns:mx="library://ns.adobe.com/flex/mx" 
+			   close="onWindowClose()"
+			   move="onWidgetMove()" 
+			   creationComplete="init()"
+			   x="15" y="150"
+			   width="460" height="380"
+			   cornerRadius="5" 
+			   alpha="1" xmlns:flexiframe="com.google.flexiframe.*">
+	<fx:Script>
+		
+		<![CDATA[
+			import com.esri.viewer.ViewerContainer;
+			
+			import mx.controls.Alert;
+			import mx.managers.PopUpManager;
+			
+		    public var VideoUrl:String;
+		 
+			/**
+			 * 监听：关闭窗口 moveUpdate="onWidgetMove()"
+			 */
+			private function onWindowClose():void
+			{
+				frm.visible=false;
+				this.visible =false;
+			 
+			}
+			/**
+			 * 监听：窗口移动 
+			 */
+			private function onWidgetMove():void
+			{
+				frm.invalidateDisplayList();
+			}
+			/**
+			 * 监听：窗口初始化
+			 */
+			private function init():void
+			{
+				
+				this.title="监控视频";
+			}
+			
+		]]>
+	</fx:Script>
+	<s:Rect top="0" left="0" right="4" bottom="4" >
+		<s:fill>
+			<s:SolidColor color="{getStyle('contentBackgroundColor')}" alpha=".75" />
+		</s:fill>
+		<s:filters>
+			<s:DropShadowFilter blurX="0" blurY="0" />
+		</s:filters>
+	</s:Rect>
+	 <s:Group width="100%" height="100%" alpha="1">
+	     <flexiframe:IFrame id="frm" source="{VideoUrl}" height="380" width="460"/>
+	 
+	
+	</s:Group> 
+</s:TitleWindow>

@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:viewer="com.esri.viewer.*"
+				   widgetConfigLoaded="configLoad()"
+				   >
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.layers.Layer;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			
+			import flash.utils.setTimeout;
+			
+			
+			/**
+			 * 调取配置文件 
+			*/
+			private function configLoad():void
+			{
+				if(configXML)
+				{
+					var mapClearName:String = configXML.externalInterface.exMapClear;
+					
+					ExternalInterface.addCallback(mapClearName, classClear);
+						
+//					test();
+				}
+			}
+			
+			
+			/**
+			 * 测试 
+			*/
+			private function test():void
+			{
+				var clearChart:Object = 
+					{
+						layer:{enable:true, name:"chart", clearAll:false},
+						legend:{enable:true, name:"测试图例组1", clearAll:false},
+						infoWindow:{enable:true}
+					};
+				var clearPoint:Object = 
+					{
+						layer:{enable:true, name:"point", clearAll:false},
+						legend:{enable:true, name:"测试图例组2", clearAll:false},
+						infoWindow:{enable:true}
+					};
+				var clearRender:Object = 
+					{
+						layer:{enable:true, name:"render", clearAll:false},
+						legend:{enable:false, name:"测试图例组2", clearAll:false},
+						infoWindow:{enable:true}
+					};
+				
+				
+				setTimeout(classClear, 20000, clearRender);
+				setTimeout(classClear, 30000, clearPoint);
+				setTimeout(classClear, 40000, clearChart);
+				
+//				setTimeout(classClear, 20000);
+			}
+			
+			
+			/**
+			 * 分类清除 
+			*/
+			private function classClear(clearObj:Object=null):void
+			{
+				if(clearObj)
+				{
+					var layerClearObj:Object = clearObj["layer"];
+					var legendClearObj:Object = clearObj["legend"];
+					var infoWindowClearObj:Object = clearObj["infoWindow"];
+					
+					if(layerClearObj)
+					{
+						layerClear(layerClearObj);
+					}
+					if(legendClearObj)
+					{
+						legendClear(legendClearObj);
+					}
+					if(infoWindowClearObj)
+					{
+						infoWindowClear(infoWindowClearObj);
+					}
+				}
+				else
+				{
+					var param:Object = {enable:true, clearAll:true};
+					
+					layerClear(param);
+					legendClear(param);
+					infoWindowClear(param);
+				}
+			}
+			
+			
+			/**
+			 * 清除地图弹出信息框 
+			*/
+			private function infoWindowClear(infoWindowClearObj:Object):void
+			{
+				if(infoWindowClearObj["enable"] && infoWindowClearObj["enable"] != "false")
+				{
+					map.infoWindow.hide();
+				}
+			}
+			
+			
+			/**
+			 *  清除图例 
+			*/
+			private function legendClear(legendClearObj:Object):void
+			{
+				if(legendClearObj["enable"] && legendClearObj["enable"] != "false")
+				{
+					if(legendClearObj["clearAll"] == true ||  legendClearObj["clearAll"] == "true")
+					{
+						var legParaObj:Object = new Object();
+						legParaObj.operate = "clear";
+						legParaObj.legendName = "all";
+						ViewerContainer.dispatchEvent(new AppEvent(AppEvent.LEGEND_EDIT, legParaObj));
+					}
+					else
+					{
+						var legParaObj2:Object = new Object();
+						legParaObj2.operate = "delete";
+						legParaObj2.legendName = legendClearObj["name"];
+						ViewerContainer.dispatchEvent(new AppEvent(AppEvent.LEGEND_EDIT, legParaObj2));
+					}
+				}
+			}
+			
+			
+			/**
+			 * 清除图层
+			*/
+			private function layerClear(layerClearObj:Object):void
+			{
+				if(layerClearObj["enable"] && layerClearObj["enable"] != "false")
+				{
+					if(layerClearObj["clearAll"] == true ||  layerClearObj["clearAll"] == "true")
+					{
+						for each(var layer:Layer in map.layers)
+						{
+							var graphicLyr:GraphicsLayer = layer as  GraphicsLayer;
+							if(graphicLyr)
+							{
+								graphicLyr.clear();
+							}
+						}
+					}
+					else
+					{
+						for each(var layer2:Layer in map.layers)
+						{
+							var graphicLyr2:GraphicsLayer = layer2 as  GraphicsLayer;
+							if(graphicLyr2)
+							{
+								if(graphicLyr2.name == layerClearObj["name"])
+								{
+									graphicLyr2.clear();
+									return;
+								}
+							}
+						}
+					}
+				}
+			}
+			
+			
+			
+		]]>
+	</fx:Script>
+	
+</viewer:BaseWidget>

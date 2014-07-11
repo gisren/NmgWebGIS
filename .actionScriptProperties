@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<actionScriptProperties mainApplicationPath="LN_ydzf_gis.mxml" projectUUID="4a2c1e0d-3fd7-4739-ab29-9bd8627032b1" version="6">
+  <compiler additionalCompilerArguments="-locale zh_CN -source-path=locale/{locale} -keep-all-type-selectors=true" autoRSLOrdering="true" copyDependentFiles="true" fteInMXComponents="false" generateAccessible="true" htmlExpressInstall="true" htmlGenerate="true" htmlHistoryManagement="true" htmlPlayerVersionCheck="true" includeNetmonSwc="false" outputFolderLocation="C:/inetpub/wwwroot/NmgWebGis" outputFolderPath="bin-debug" sourceFolderPath="src" strict="true" targetPlayerVersion="0.0.0" useApolloConfig="false" useDebugRSLSwfs="true" verifyDigests="true" warn="true">
+    <compilerSourcePath/>
+    <libraryPath defaultLinkType="3">
+      <libraryPathEntry kind="4" path="">
+        <excludedEntries>
+          <libraryPathEntry kind="3" linkType="1" path="${PROJECT_FRAMEWORKS}/libs/flex.swc" useDefaultLinkType="false"/>
+        </excludedEntries>
+      </libraryPathEntry>
+      <libraryPathEntry kind="1" linkType="1" path="libs"/>
+    </libraryPath>
+    <sourceAttachmentPath/>
+  </compiler>
+  <applications>
+    <application path="OverviewMapWidget.mxml"/>
+    <application path="LN_ydzf_gis.mxml"/>
+  </applications>
+  <modules>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/exInterface/Clear/ClearWidget.swf" optimize="true" sourcePath="src/widgets/exInterface/Clear/ClearWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/exInterface/trackPlay/trackPlay.swf" optimize="true" sourcePath="src/widgets/exInterface/trackPlay/trackPlay.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/elements/HeaderController/HeaderControllerWidget.swf" optimize="true" sourcePath="src/widgets/elements/HeaderController/HeaderControllerWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/exInterface/PolluteManager/PolluteWidget.swf" optimize="true" sourcePath="src/widgets/exInterface/PolluteManager/PolluteWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/exInterface/Point/PointWidget.swf" optimize="true" sourcePath="src/widgets/exInterface/Point/PointWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/toolBar/DynamicLabel/DynamicLabelWidget.swf" optimize="true" sourcePath="src/widgets/toolBar/DynamicLabel/DynamicLabelWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/exInterface/Extent/MapExtent.swf" optimize="true" sourcePath="src/widgets/exInterface/Extent/MapExtent.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/exInterface/ClickToAddPoint/AddPointWidget.swf" optimize="true" sourcePath="src/widgets/exInterface/ClickToAddPoint/AddPointWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/exInterface/StatisticalAnalysis/StatisticalWidget.swf" optimize="true" sourcePath="src/widgets/exInterface/StatisticalAnalysis/StatisticalWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/exInterface/Reseau/ReseauWidget.swf" optimize="true" sourcePath="src/widgets/exInterface/Reseau/ReseauWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/elements/TitleController/TitleControllerWidget.swf" optimize="true" sourcePath="src/widgets/elements/TitleController/TitleControllerWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/Airdisplay/AirDisplay.swf" optimize="true" sourcePath="src/widgets/Airdisplay/AirDisplay.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/toolBar/Search/SearchWidget.swf" optimize="true" sourcePath="src/widgets/toolBar/Search/SearchWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/exInterface/Rendering/MapRendering.swf" optimize="true" sourcePath="src/widgets/exInterface/Rendering/MapRendering.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/elements/Coordinate/CoordinateWidget.swf" optimize="true" sourcePath="src/widgets/elements/Coordinate/CoordinateWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/elements/Widget3D/Widget3D.swf" optimize="true" sourcePath="src/widgets/elements/Widget3D/Widget3D.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/toolBar/Screenshot/ScreenshotWidget.swf" optimize="true" sourcePath="src/widgets/toolBar/Screenshot/ScreenshotWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/exInterface/ExLegend/ExLegendWidget.swf" optimize="true" sourcePath="src/widgets/exInterface/ExLegend/ExLegendWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/exInterface/BufferAnalyse/BufferAnalyseWidget.swf" optimize="true" sourcePath="src/widgets/exInterface/BufferAnalyse/BufferAnalyseWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/toolBar/Draw/DrawWidget.swf" optimize="true" sourcePath="src/widgets/toolBar/Draw/DrawWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/elements/Legend/LegendWidget.swf" optimize="true" sourcePath="src/widgets/elements/Legend/LegendWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/elements/LeftController/LeftControllerWidget.swf" optimize="true" sourcePath="src/widgets/elements/LeftController/LeftControllerWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/toolBar/LayerList/LayerListWidget.swf" optimize="true" sourcePath="src/widgets/toolBar/LayerList/LayerListWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/elements/Navigation/NavigationWidget.swf" optimize="true" sourcePath="src/widgets/elements/Navigation/NavigationWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/elements/OverviewMap/OverviewMapWidget.swf" optimize="true" sourcePath="src/widgets/elements/OverviewMap/OverviewMapWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/exInterface/EnvPlot/EnvPlotWidget.swf" optimize="true" sourcePath="src/widgets/exInterface/EnvPlot/EnvPlotWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/exInterface/Chart/ChartWidget.swf" optimize="true" sourcePath="src/widgets/exInterface/Chart/ChartWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/elements/WidgetContainer/WidgetContainerWidget.swf" optimize="true" sourcePath="src/widgets/elements/WidgetContainer/WidgetContainerWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/elements/MapSwitcher/MapSwitcherWidget.swf" optimize="true" sourcePath="src/widgets/elements/MapSwitcher/MapSwitcherWidget.mxml"/>
+    <module application="src/LN_ydzf_gis.mxml" destPath="widgets/toolBar/Buffer/BufferWidget.swf" optimize="true" sourcePath="src/widgets/toolBar/Buffer/BufferWidget.mxml"/>
+  </modules>
+  <buildCSSFiles/>
+</actionScriptProperties>

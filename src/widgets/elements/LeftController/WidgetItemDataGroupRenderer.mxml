@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     ////////////////////////////////////////////////////////////////////////////////
+     //
+     // Copyright (c) 2010 ESRI
+     //
+     // All rights reserved under the copyright laws of the United States.
+     // You may freely redistribute and use this software, with or
+     // without modification, provided you include the original copyright
+     // and use restrictions.  See use restrictions in the file:
+     // <install location>/License.txt
+     //
+     ////////////////////////////////////////////////////////////////////////////////
+-->
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009"
+                xmlns:s="library://ns.adobe.com/flex/spark"
+                xmlns:mx="library://ns.adobe.com/flex/mx"
+                autoDrawBackground="false"
+                buttonMode="true"
+                click="itemrenderer_clickHandler(event)"
+                dataChange="itemrenderer_dataChangeHandler(event)"
+                useHandCursor="true">
+
+    <fx:Declarations>
+<!--        <s:Move3D id="moveEffect"
+                  duration="200"
+                  effectEnd="moveEffect_effectEndHandler(event)"
+                  repeatBehavior="reverse"
+                  repeatCount="2"
+                  target="{icon}"
+                  yBy="-8"
+                  yFrom="0"/>-->
+    </fx:Declarations>
+
+    <fx:Script>
+        <![CDATA[
+            import mx.events.EffectEvent;
+            import mx.events.FlexEvent;
+
+            private const WIDGET_ITEM_CLICK:String = "widgetItemClick";
+            private const WIDGET_ITEM_MOUSE_OVER:String = "widgetItemMouseOver";
+            private const WIDGET_ITEM_MOUSE_OUT:String = "widgetItemMouseOut";
+
+            [Bindable]
+            private var widgetItem:WidgetItem;
+
+            private function itemrenderer_dataChangeHandler(event:FlexEvent):void
+            {
+                widgetItem = data as WidgetItem;
+
+                icon.source = widgetItem.icon;
+/*                 underline.visible = widgetItem.open;
+                underline.includeInLayout = widgetItem.open; */
+            }
+
+            private function mouseOutHandler(event:MouseEvent):void
+            {
+//                dispatchEvent(new Event(WIDGET_ITEM_MOUSE_OUT, true)); // bubbles
+				
+				icon.alpha = 1;
+            }
+
+            private function mouseOverHandler(event:MouseEvent):void
+            {
+//                dispatchEvent(new Event(WIDGET_ITEM_MOUSE_OVER, true)); // bubbles
+				
+				icon.alpha = .8;
+            }
+
+            private function itemrenderer_clickHandler(event:MouseEvent):void
+            {
+                if (!WidgetItem(data).open)
+                {
+//                    moveEffect.end();
+//                    moveEffect.play();
+					dispatchEvent(new Event(WIDGET_ITEM_CLICK, true)); // bubbles
+                }
+            }
+
+            private function moveEffect_effectEndHandler(event:EffectEvent):void
+            {
+                //dispatchEvent(new Event(WIDGET_ITEM_CLICK, true)); // bubbles
+            }
+			
+			
+			
+        ]]>
+    </fx:Script>
+	
+
+	<!--<fx:Declarations>
+		<s:AnimateFilter id="glow" alphaFrom="1.0" alphaTo="0.3" 
+						 
+						 blurXFrom="0.0" blurXTo="50.0" 
+						 blurYFrom="0.0" blurYTo="50.0" 
+						 >
+		</s:AnimateFilter>
+		<s:AnimateFilter id="unGlow" alphaFrom="0.3" alphaTo="1.0" 
+						 blurXFrom="50.0" blurXTo="0.0" 
+						 blurYFrom="50.0" blurYTo="0.0" 
+						 >
+		</s:AnimateFilter>
+	</fx:Declarations>-->
+	
+	
+    <mx:Image id="icon"
+			  width="144" height="36"
+              buttonMode="true"
+              smoothBitmapContent="true"
+              useHandCursor="true"
+			  mouseOut="mouseOutHandler(event)"
+			  mouseOver="mouseOverHandler(event)"
+			  /><!--
+	rollOverEffect="glow"
+	rollOutEffect="unGlow"
+	
+	-->
+
+</s:ItemRenderer>

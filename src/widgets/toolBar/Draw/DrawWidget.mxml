@@ -1,0 +1,568 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2012 中科宇图天下科技有限公司 - 环保事业部
+//
+// 测量模块
+// 
+// 显示点的经纬度、线长度、面的面积
+// 
+// Author：LiuXL
+// Date：2012.03.29
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<viewer:BaseWidget xmlns:esri="http://www.esri.com/2008/ags"
+				   xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:viewer="com.esri.viewer.*"
+				   widgetConfigLoaded="init()"
+				   >
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.Units;
+			import com.esri.ags.events.DrawEvent;
+			import com.esri.ags.geometry.Geometry;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.geometry.Polyline;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.symbols.PictureMarkerSymbol;
+			import com.esri.ags.symbols.SimpleMarkerSymbol;
+			import com.esri.ags.symbols.TextSymbol;
+			import com.esri.ags.tasks.GeometryServiceSingleton;
+			import com.esri.ags.tools.DrawTool;
+			import com.esri.ags.utils.GeometryUtil;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			import com.mapUni.BaseClass.MapUni;
+			
+			import mx.formatters.NumberFormatter;
+			
+			
+			[Bindable]
+			private var drawPointLabel:String;
+			
+			[Bindable]
+			private var drawLineLabel:String;
+			
+			[Bindable]
+			private var drawPolygonLabel:String;
+			
+			private var graphicsLayer:GraphicsLayer;
+			private var labelGraLayer:GraphicsLayer;
+			private var turningPointLayer:GraphicsLayer;
+			
+			private var selectedDrawingIcon:Image;
+			
+			/**
+			 * 收集当前已绘制折线的点 
+			 */
+			private var drawLinePointAry:Array = new Array();
+			
+			/**
+			 * 标识是否正在进行距离测量 
+			 */
+			private var drawingLine:Boolean = false;
+			
+			[Embed(source="assets/yutuImages/mapIcon/pushpin_centered.png")]
+			private var imageCursor:Class;
+			
+			
+			private function init():void
+			{
+				ViewerContainer.addEventListener(AppEvent.CLEAR_MAP, onClearMap);
+				
+				wTemplate.enableResizeButton = false;
+				
+				graphicsLayer = new GraphicsLayer();
+				labelGraLayer = new GraphicsLayer();
+				turningPointLayer = new GraphicsLayer();
+				
+				map.addLayer(graphicsLayer);
+				map.addLayer(turningPointLayer);
+				map.addLayer(labelGraLayer);
+				
+				if (configXML)
+				{
+					if (GeometryServiceSingleton.instance.url) 
+					{
+						geometryService.url = GeometryServiceSingleton.instance.url;
+						geometryService.token = GeometryServiceSingleton.instance.token;
+						geometryService.proxyURL = GeometryServiceSingleton.instance.proxyURL;
+					}
+					
+					drawPointLabel = "点坐标" || getDefaultString("drawPointLabel");
+					drawLineLabel = "测量距离" || getDefaultString("drawLineLabel");
+					drawPolygonLabel = "测量面积" || getDefaultString("drawPolygonLabel");
+					
+					var graphIcon:String = configXML.titleBarImage.graph.@icon;
+					var graphTootip:String = configXML.titleBarImage.graph.@tooltip;
+					
+					var attriIcon:String = configXML.titleBarImage.attri.@icon;
+					var attriTootip:String = configXML.titleBarImage.attri.@tooltip;
+					
+					//					wTemplate.addTitlebarButton(graphIcon, graphTootip, graphState);
+					//					wTemplate.addTitlebarButton(attriIcon, attriTootip, attriState);
+				}
+			}
+			
+			
+			private function graphState():void
+			{
+				this.currentState = "graphState";
+			}
+			
+			private function attriState():void
+			{
+				this.currentState = "attriState";
+			}
+			
+			
+			/**
+			 * 监听：工具条上清除按钮的点击 
+			 */
+			private function onClearMap(event:AppEvent):void
+			{
+				graphicsLayer.clear();
+				labelGraLayer.clear();
+				turningPointLayer.clear();
+			}
+			
+			
+			/**
+			 * 准备绘制图形 
+			 */
+			private function activateDrawTool(event:MouseEvent):void
+			{
+				addSharedData("Deactivate_DrawTool", null); // to be able to deactivate drawTool on other widgets
+				
+				// apply glow
+				selectedDrawingIcon = Image(event.currentTarget);
+				clearSelectionFilter();
+				selectedDrawingIcon.filters = [ glowFilter ];
+				
+				var drawType:String = selectedDrawingIcon.name;
+				var drawStatus:String = "";
+				switch (drawType)
+				{
+					case DrawTool.MAPPOINT:
+					{
+						drawStatus = drawPointLabel;
+						setMapAction(drawType, drawStatus, null, map_drawEndHandler);
+						
+						this.cursorManager.setCursor(imageCursor, 1, -36, -40);
+						break;
+					}
+					case DrawTool.POLYLINE:
+					{
+						
+						drawStatus = drawLineLabel;
+						setMapAction(drawType, drawStatus, lineSymbol, map_drawEndHandler);
+						
+						map.addEventListener(MouseEvent.CLICK, DarwLineOnMap);
+						drawingLine = true;
+						break;
+					}
+					case DrawTool.POLYGON:
+					{
+						
+						drawStatus = drawPolygonLabel;
+						setMapAction(drawType, drawStatus, fillSymbol, map_drawEndHandler);
+						break;
+					}
+				}
+			}
+			
+			
+			/**
+			 * 
+			 * 添加绘制折线时的折点符号
+			 * 测量绘制线段的长度
+			 *  
+			 */
+			private function DarwLineOnMap(event:MouseEvent):void
+			{
+				if(drawingLine)
+				{
+					var mapPoint:MapPoint = map.toMapFromStage(event.stageX, event.stageY);
+					
+					/* 
+					折点符号
+					*/
+					var pSymbol:SimpleMarkerSymbol = new SimpleMarkerSymbol();
+					pSymbol.color = 0xffffff;
+					pSymbol.size = 8;
+					pSymbol.outline = new SimpleLineSymbol();
+					pSymbol.outline.width = 2;
+					pSymbol.outline.color = 0x0000ff;
+					
+					var pGraphic:Graphic = new Graphic(mapPoint, pSymbol);
+					turningPointLayer.add(pGraphic);
+					
+					/*
+					标识折线长度
+					*/
+					var tlabel:String = "";
+					var xoffset:Number = 0;
+					
+					if(!drawLinePointAry.length)
+					{
+						drawLinePointAry.push(mapPoint);
+						
+						tlabel = "起点";
+						
+						xoffset = 25;
+					}
+					else
+					{
+						drawLinePointAry.push(mapPoint);
+						
+						var line:Polyline = new Polyline();
+						line.addPath(drawLinePointAry);
+						line.spatialReference = map.spatialReference;
+						
+						var lenghtAry:Array = GeometryUtil.geodesicLengths([line], Units.KILOMETERS);
+						
+						tlabel = Number(lenghtAry[0]).toFixed(1).toString() + " 公里";
+						
+						xoffset = 40;
+					}
+					
+					var tSymbol:TextSymbol = new TextSymbol(tlabel);
+					tSymbol.textFormat = new TextFormat();
+					tSymbol.textFormat.size = 13;
+					tSymbol.textFormat.color = 0x000000;
+					tSymbol.background = true;
+					tSymbol.backgroundColor = 0xffffff;
+					tSymbol.border = true;
+					tSymbol.borderColor = 0x000ff;
+					tSymbol.xoffset = xoffset; 
+					
+					var tGraphic:Graphic = new Graphic(mapPoint, tSymbol);
+					labelGraLayer.add(tGraphic);
+				}
+			}
+			
+			
+			/**
+			 * 绘制完成 
+			 */
+			private function map_drawEndHandler(event:DrawEvent):void
+			{
+				this.cursorManager.removeAllCursors();
+				selectedDrawingIcon = null;
+				clearSelectionFilter();
+				
+				event.target.deactivate();
+				var geom:Geometry = event.graphic.geometry;
+				
+				var lastDrawnGraphic:Graphic = new Graphic(geom);
+				graphicsLayer.add(lastDrawnGraphic);
+				
+				switch (geom.type)
+				{
+					case Geometry.MAPPOINT:
+					{
+						lastDrawnGraphic.symbol = new PictureMarkerSymbol(configXML.pushpinIcon.toString());
+						setPointInfo(lastDrawnGraphic);
+						
+						break;
+					}
+					case Geometry.POLYLINE:
+					{
+						map.removeEventListener(MouseEvent.CLICK, map_drawEndHandler);
+						
+						lastDrawnGraphic.symbol = lineSymbol;
+						
+						drawLinePointAry = new Array();
+						
+						drawingLine = false
+						
+						break;
+					}
+					case Geometry.POLYGON:
+					{
+						lastDrawnGraphic.symbol = fillSymbol;
+						
+						var polygonArea:Array = GeometryUtil.geodesicAreas([lastDrawnGraphic.geometry], Units.SQUARE_KILOMETERS);
+						
+						var textLabel:String = "面积：" + Number(polygonArea[0]).toFixed(2).toString() + " 平方公里";
+						var textSymbol:TextSymbol = new TextSymbol(textLabel);
+						textSymbol.color = 0x0000ff;
+						textSymbol.textFormat = new TextFormat();
+						textSymbol.textFormat.bold = true;
+						textSymbol.textFormat.size = 16;
+						textSymbol.textFormat.font = getDefaultString('textFont1');
+						
+						var areaGra:Graphic = new Graphic( lastDrawnGraphic.geometry.extent.center as MapPoint, textSymbol );
+						labelGraLayer.add(areaGra);
+						
+						break; 
+					}
+				}
+			}
+			
+			
+			/**
+			 * 绘制点定位的信息 
+			 */
+			private function setPointInfo(lastDrawnGraphic:Graphic):void
+			{
+				var gra:Graphic = new Graphic(lastDrawnGraphic.geometry);
+				labelGraLayer.add(gra);
+				
+				var tlabel:String = "经度：" + MapPoint(lastDrawnGraphic.geometry).x.toFixed(4).toString() + "  纬度：" + MapPoint(lastDrawnGraphic.geometry).y.toFixed(4).toString();
+				
+				var tSymbol:TextSymbol = new TextSymbol(tlabel);
+				tSymbol.textFormat = new TextFormat();
+				tSymbol.textFormat.size = 13;
+				tSymbol.textFormat.color = 0x000000;
+				tSymbol.background = true;
+				tSymbol.backgroundColor = 0xffffff;
+				tSymbol.border = true;
+				tSymbol.borderColor = 0x000ff;
+				tSymbol.xoffset = 120; 
+				tSymbol.yoffset = 10;
+				
+				gra.symbol = tSymbol;
+			}
+			
+			
+			/**
+			 * 根据键入的经纬度添加点 
+			 */
+			private function attriAddPoint():void
+			{
+				if(longInput.text == "")
+				{
+					infoLabel.text = "请键入经度";
+					return;
+				}
+				if(latInput.text == "")
+				{
+					infoLabel.text = "请键入纬度";
+					return;
+				}
+				if(infoLabel.text)
+				{
+					infoLabel.text = "";
+				}
+				
+				var longitude:Number = Number(longInput.text);
+				var latitude:Number = Number(latInput.text);
+				
+				var point:MapPoint = new MapPoint(longitude, latitude);
+				var symbol:PictureMarkerSymbol = new PictureMarkerSymbol(configXML.pushpinIcon.toString());
+				
+				var graphic:Graphic = new Graphic(point, symbol);
+				labelGraLayer.add(graphic);
+				
+				setPointInfo(graphic);
+				
+				map.centerAt(point);
+			}
+			
+			
+			/**
+			 * 鼠标移入按钮 
+			 */
+			private function drawIcon_rollOverHandler(event:MouseEvent):void
+			{
+				clearSelectionFilter();
+				event.target.filters = [ glowFilter ];
+			}
+			/**
+			 * 鼠标移出按钮 
+			 */
+			private function drawIcon_rollOutHandler(event:MouseEvent):void
+			{
+				clearSelectionFilter();
+			}
+			/**
+			 * 清除按钮选中效果 
+			 */
+			private function clearSelectionFilter():void
+			{
+				for (var i:int = 0; i < drawImageGroup.numChildren; i++)
+				{
+					if (drawImageGroup.getChildAt(i).filters && drawImageGroup.getChildAt(i).filters.length > 0)
+					{
+						if (!(selectedDrawingIcon && drawImageGroup.getChildAt(i) === selectedDrawingIcon))
+						{
+							drawImageGroup.getChildAt(i).filters = [];
+						}
+					}
+				}
+			}
+			
+			
+			
+			/**
+			 * 关闭模块 
+			 */
+			private function wTemplate_closeHandler(event:Event):void
+			{
+				graphicsLayer.visible = false;
+				labelGraLayer.visible = false;
+				turningPointLayer.visible = false;
+				
+				setMapAction(null, null, null, null); // deactivate drawTool
+				
+				if (selectedDrawingIcon)
+				{
+					selectedDrawingIcon = null;
+				}
+			}
+			/**
+			 * 打开模块 
+			 */
+			private function wTemplate_openHandler(event:Event):void
+			{
+				if (graphicsLayer)
+				{
+					graphicsLayer.visible = true;
+				}
+				if(labelGraLayer)
+				{
+					labelGraLayer.visible = true;
+				}
+				if(turningPointLayer)
+				{
+					turningPointLayer.visible = true;
+				}
+			}
+			
+			
+			
+			
+			/**
+			 * 调用几何服务时报错 
+			 */
+			private function geometryService_faultHandler(info:Object, token:Object = null):void
+			{
+				showErrorInfo(info.toString());
+			}
+			
+			/**
+			 * 显示错误信息 
+			 */
+			private function showErrorInfo(errorInfo:String):void
+			{
+				var widgetInfo:String = 
+					"名称：测量模块\n" +
+					"功能：测量点的经纬度、线的距离、面的面积\n";
+				MapUni.errorWindow(widgetInfo + errorInfo)
+			}
+			
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<s:GlowFilter id="glowFilter"
+					  alpha="1"
+					  color="{getStyle('focusColor')}"
+					  inner="true"
+					  strength="2"/>
+		<esri:GeometryService id="geometryService"
+							  fault="geometryService_faultHandler(event)"
+							  />
+		<esri:SimpleFillSymbol id="fillSymbol"
+							   color="0x2D91CC"
+							   alpha=".3"
+							   >
+			<esri:SimpleLineSymbol width="1" color="0x0000ff"/>
+		</esri:SimpleFillSymbol>
+		<esri:SimpleLineSymbol id="lineSymbol"
+							   width="2"
+							   alpha=".75"
+							   color="0x0000ff"
+							   />
+		<!--<esri:PictureMarkerSymbol id="pointSymbol"
+		source="assets/images/i_pushpin_centered.png"
+		/>-->
+	</fx:Declarations>
+	
+	<viewer:states>
+		<s:State name="graphState" />
+		<s:State name="attriState" />
+	</viewer:states>
+	
+	<viewer:transitions>
+		<s:Transition autoReverse="true" fromState="*" toState="*">
+			<s:Parallel>
+				<s:Resize duration="500" target="{wTemplate}" />
+				<s:Fade duration="500" targets="{[drawImageGroup,inputLongLat]}"  />
+			</s:Parallel>
+		</s:Transition>
+	</viewer:transitions>
+	
+	<viewer:WidgetTemplate id="wTemplate"
+						   width="200" 
+						   height.graphState="110"
+						   height.attriState="140"
+						   minWidth="200" minHeight="110" 
+						   closed="wTemplate_closeHandler(event)"
+						   open="wTemplate_openHandler(event)"
+						   >
+		<s:HGroup id="drawImageGroup"
+				  includeIn="graphState"
+				  width="100%" height="100%"
+				  gap="2"
+				  horizontalAlign="center"
+				  verticalAlign="middle"
+				  >
+			<mx:Image name="{DrawTool.MAPPOINT}"
+					  width="40" height="40"
+					  buttonMode="true"
+					  click="activateDrawTool(event)"
+					  rollOut="drawIcon_rollOutHandler(event)"
+					  rollOver="drawIcon_rollOverHandler(event)"
+					  source="assets/images/i_draw_point.png"
+					  toolTip="{drawPointLabel}"
+					  useHandCursor="true"/>
+			<mx:Image name="{DrawTool.POLYLINE}"
+					  width="40" height="40"
+					  buttonMode="true"
+					  click="activateDrawTool(event)"
+					  rollOut="drawIcon_rollOutHandler(event)"
+					  rollOver="drawIcon_rollOverHandler(event)"
+					  source="assets/images/i_draw_line.png"
+					  toolTip="{drawLineLabel}"
+					  useHandCursor="true"/>
+			<mx:Image name="{DrawTool.POLYGON}"
+					  width="40" height="40"
+					  buttonMode="true"
+					  click="activateDrawTool(event)"
+					  rollOut="drawIcon_rollOutHandler(event)"
+					  rollOver="drawIcon_rollOverHandler(event)"
+					  source="assets/images/i_draw_poly.png"
+					  toolTip="{drawPolygonLabel}"
+					  useHandCursor="true"/>
+		</s:HGroup>
+		
+		<s:VGroup id="inputLongLat"
+				  includeIn="attriState"
+				  width="100%" height="100%"
+				  paddingTop="2"
+				  >
+			<s:HGroup width="100%">
+				<s:Label id="longText" text="经度"  height="100%" verticalAlign="middle"/>
+				<s:TextInput id="longInput" enter="attriAddPoint()" restrict="0-9." maxChars="10" />
+			</s:HGroup>
+			<s:HGroup width="100%">
+				<s:Label id="latText" text="纬度"  height="100%" verticalAlign="middle"/>
+				<s:TextInput id="latInput" enter="attriAddPoint()" restrict="0-9." maxChars="9" />
+			</s:HGroup>
+			<s:HGroup width="100%">
+				<s:Label id="infoLabel" height="100%" width="80" verticalAlign="middle" color="#ff0000"/>
+				<s:Button id="locatButton" label="定位" click="attriAddPoint()" />
+			</s:HGroup>
+		</s:VGroup>
+	</viewer:WidgetTemplate>
+	
+</viewer:BaseWidget>

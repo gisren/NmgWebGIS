@@ -1,0 +1,875 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2012 中科宇图天下科技有限公司 - 环保事业部
+//
+// 地图搜索
+// 
+// 根据输入框中的关键字，搜索配置文件中指定的图层
+// 
+// Author：liuXL
+// Date：2012.04.10
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<viewer:BaseWidget xmlns:esri="http://www.esri.com/2008/ags"
+                   xmlns:fx="http://ns.adobe.com/mxml/2009"
+                   xmlns:s="library://ns.adobe.com/flex/spark"
+                   xmlns:mx="library://ns.adobe.com/flex/mx"
+                   xmlns:viewer="com.esri.viewer.*"
+				   xmlns:Search="widgets.toolBar.Search.*"
+                   widgetConfigLoaded="init()" 
+				   xmlns:DataGrid="com.mapUni.UtilComponent.DataGrid.*" 
+				   xmlns:pageNavigation="com.mapUni.UtilComponent.pageNavigation.*" 
+				   >
+    <fx:Script>
+        <![CDATA[
+			import com.esri.ags.FeatureSet;
+			import com.esri.ags.Graphic;
+			import com.esri.ags.components.supportClasses.InfoWindow;
+			import com.esri.ags.events.LayerEvent;
+			import com.esri.ags.geometry.Geometry;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.geometry.Polygon;
+			import com.esri.ags.geometry.Polyline;
+			import com.esri.ags.layers.FeatureLayer;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.symbols.CompositeSymbol;
+			import com.esri.ags.symbols.LineSymbol;
+			import com.esri.ags.symbols.PictureMarkerSymbol;
+			import com.esri.ags.symbols.SimpleFillSymbol;
+			import com.esri.ags.symbols.SimpleLineSymbol;
+			import com.esri.ags.symbols.SimpleMarkerSymbol;
+			import com.esri.ags.symbols.Symbol;
+			import com.esri.ags.symbols.TextSymbol;
+			import com.esri.ags.tasks.supportClasses.Query;
+			import com.esri.ags.webmap.PopUpRenderer;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			import com.mapUni.BaseClass.InfoWindow.InfoResult;
+			import com.mapUni.BaseClass.MapUni;
+			import com.mapUni.UtilComponent.pageNavigation.UE_PageNavigationEvent;
+			
+			import flash.utils.setTimeout;
+			
+			import flashx.textLayout.edit.TextScrap;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.CollectionEvent;
+			import mx.managers.CursorManager;
+			import mx.rpc.AsyncResponder;
+			import mx.utils.StringUtil;
+			
+			import org.osmf.layout.AbsoluteLayoutFacet;
+			
+			
+			
+			[Bindable]
+			/** 是否显示搜索结果信息 */
+			private var msgVisible:Boolean = false;
+			
+			[Bindable]
+			/** 搜索结果 */
+			private var searchResultAC:ArrayCollection = new ArrayCollection();
+			
+			/** 配置后查询图层 */
+			private var configSearchText:Array = new Array();
+			
+			/** 已经查询完的图层个数  */
+			private var searchingNum:Number = 0;
+			
+			/** 是否已经查询完毕 */
+			private var isSearchEnd:Boolean = true;
+			
+			/** 绘制图层 */
+			private var graphicLayer:GraphicsLayer = new GraphicsLayer();
+			
+			
+			
+			private function init():void
+			{
+				wTemplate.enableResizeButton = false;
+				
+				map.addLayer(graphicLayer);
+				
+				if(configXML)
+				{
+					arrangeLayers();
+				}
+				
+				ViewerContainer.addEventListener(AppEvent.CLEAR_MAP, onClearMap);
+				
+//				map.infoWindow.addEventListener(Event.CLOSE, onInfoWindowclese);
+			}
+		
+			
+			/**
+			 * 整理搜索图层 
+			*/
+			private function arrangeLayers():void
+			{
+				var lyrList:XMLList = configXML.layers.layer;
+				
+				for (var i:int = 0; i < lyrList.length(); i++)
+				{
+					var lyrLabel:String = lyrList[i].name;
+					var lyrExpr:String = lyrList[i].expression;
+					var lyrFields:XMLList = lyrList[i].fields;
+					var lyrTitleField:String = lyrList[i].titlefield;
+					var useAMF:String = lyrList[i].useAMF;
+					
+					
+					var featureLayUrl:String = MapUni.layerUrl(map, lyrLabel);
+					
+					var layer:FeatureLayer = new FeatureLayer(featureLayUrl);
+					if (useAMF)
+					{
+						layer.useAMF = useAMF == "true";
+					}
+					if (lyrFields && lyrFields[0].@all[0] == "true")
+					{
+						layer.outFields = [ "*" ];
+					}
+					else if (lyrFields)
+					{
+						var fields:XMLList = lyrFields.field;
+						layer.outFields = [];
+						for each (var fieldXML:XML in fields)
+						{
+							if (fieldXML.@name[0])
+							{
+								layer.outFields.push(fieldXML.@name[0]);
+							}
+						}
+					}
+					
+					var searchLayer:Object =
+						{
+							layer: layer,
+							label: lyrLabel,
+							expr: lyrExpr,
+							fields: lyrFields,
+							titlefield: lyrTitleField
+						};
+					
+					if (lyrExpr)
+					{
+						configSearchText.push(searchLayer);
+					}
+				}
+			}
+			
+
+			/**
+			 * 图层属性查询
+			 * 检查图层加载状态  
+			*/
+			private function queryFeaturesText():void
+			{
+				if(graphicLayer)
+				{
+					graphicLayer.visible=true;
+				}
+				var searchText:String = StringUtil.trim(txtSearch.text);
+				if(!searchText)
+				{
+					showMessage("请输入查询条件", false);
+					return;
+				}
+				if(!isSearchEnd)
+				{
+					showMessage("上次查询还未完成，请等待完成后再进行查询", false);
+					return;
+				}
+				
+				var unLoadNum:uint = 0;
+				
+				/*
+				验证图层是否已经全部加载完成
+				*/
+				for(var i:int=0; i<configSearchText.length; i++)
+				{
+					var queryLayer:FeatureLayer = configSearchText[i].layer;
+					
+					if (queryLayer && !queryLayer.loaded)
+					{
+						queryLayer.addEventListener(LayerEvent.LOAD, queryLayer_loadHandler);
+						
+						function queryLayer_loadHandler(event:LayerEvent):void
+						{
+							queryFeaturesText();
+						}
+//						return;
+						
+						unLoadNum++;
+					}
+				}
+				
+				/*  lxl 注 用于显示未能成功加载的图层个数
+				if(unLoadNum)
+				{
+					showErrorInfo("错误：未加载完成的图层个数" + unLoadNum.toString());
+				} */
+				
+				resetData();
+				
+				for(var n:int=0; n<configSearchText.length; n++)
+				{
+					var searchParam:Object = configSearchText[n];
+					
+					searchLayer(searchParam);
+				}
+				
+			}
+			
+			
+			/**
+			 * 准备查询前的参数设置
+			*/
+			private function resetData():void
+			{
+				//已查询过的图层数归零
+				searchingNum = 0;
+				
+				//是否查询完毕改为否
+				isSearchEnd = false;
+				
+				//显示忙碌图标
+				CursorManager.setBusyCursor();
+				
+				//查询结果清空
+				searchResultAC.removeAll();
+				pageNavi.pageData = searchResultAC;
+				
+				//清空图层
+				clear();
+				
+				//结果列表清空
+				searchResultItem.dataProvider = null;
+				
+				//显示搜索状态图标
+				showMessage("正在搜索…", true);
+			}
+			
+			
+			/**
+			 * 查询单个图层
+			*/
+			private function searchLayer(configSearch:Object):void
+			{
+				var queryLayer:FeatureLayer = configSearch.layer;
+				var queryExpr:String = configSearch.expr;
+				var searchText:String = StringUtil.trim(txtSearch.text);
+				
+				if (queryLayer && searchText)
+				{
+					var expr:String = queryExpr.replace(/\[value\]/g, searchText);
+					
+					var query:Query = new Query();
+					query.where = expr;
+					query.outSpatialReference = map.spatialReference;
+					queryLayer.queryFeatures(query, new AsyncResponder(onResult, onFault, configSearch));
+					
+					function onResult(featureSet:FeatureSet, token:Object = null):void
+					{
+						searchingNum++;
+						
+						createSearchResults(featureSet, token);
+						
+						if(searchingNum == configSearchText.length)
+						{
+							onSearchEnd();
+						}
+					}
+					
+					function onFault(info:Object, token:Object = null):void
+					{
+						CursorManager.removeBusyCursor();
+						
+						showErrorInfo(
+							"错误：在检索图层信息时出错\n"+
+							"图层名称：" + configSearch.lyrLabel + "\n" +
+							"检索条件：" + expr + "\n" +
+							"返回字段：" + queryLayer.outFields.toString()
+						);
+					}
+				}
+			}
+			
+			
+			/**
+			 * 收集并整理查询结果数据 
+			*/
+			private function createSearchResults(featureSet:FeatureSet, token:Object):void
+			{
+				var layerName:String = token.label;
+				var titleField:String = token.titlefield;
+				
+				for each( var graphic:Graphic in featureSet.features )
+				{
+					var attribute:Object = graphic.attributes;
+					
+					var searchRest:InfoResult = new InfoResult();
+					searchRest.title = attribute[titleField];
+					searchRest.layerName = layerName;
+					searchRest.geometry = graphic.geometry;
+					searchRest.primaryCode = configXML.pointRedPic;
+					
+					searchResultAC.addItem(searchRest);
+				}
+			}
+			
+			
+			/**
+			 * 查询完毕 
+			*/
+			private function onSearchEnd():void
+			{
+				CursorManager.removeBusyCursor();
+				
+				//是否查询完毕改为是
+				isSearchEnd = true;
+				
+				//显示查询结果信息
+				arrangeResultInfo();
+				
+				//将查询结果赋值给翻页控件
+				pageNavi.pageData = searchResultAC;
+			}
+			
+			
+			/**
+			 * 监听清空地图事件 
+			 */
+			private function onClearMap(event:AppEvent):void
+			{
+				searchState();
+				
+				clear();
+				
+				searchResultItem.dataProvider = null;
+				pageNavi.pageData = null;
+				txtSearch.text = "";
+				txtMessage.text = "";
+			}
+			
+			
+			/**
+			 * 显示查询结果信息
+			*/
+			private function arrangeResultInfo():void
+			{
+				if (searchResultAC.length < 1)
+				{
+					showMessage("没有搜索到相关信息", false);
+					
+					searchState();
+				}
+				else
+				{
+					clearMessage();
+					
+					resultState();
+				}
+			}
+			
+			
+			/**
+			 * 改变视图状态为查询 
+			*/
+			private function searchState():void
+			{
+				this.currentState = "search";
+			}
+			
+			
+			/**
+			 * 改变视图状态为结果
+			 */
+			private function resultState():void
+			{
+				this.currentState = "result";
+			}
+
+			
+			/**
+			 * 监听翻页事件
+			 * 创建混合符号
+			*/
+			private function pageNaviChange(event:UE_PageNavigationEvent):void
+			{
+				clear();
+				
+				var pageData:ArrayCollection = event.data as ArrayCollection;
+				
+				var infoAC:ArrayCollection = new ArrayCollection();
+				var graphicAC:ArrayCollection = new ArrayCollection();
+				
+				for(var i:int=0; i<pageData.length; i++)
+				{
+					//创建混合符号
+					var comSymbol:CompositeSymbol = createPointSymbol((i+1).toString());
+					
+					/*
+					向地图上添加信息  
+					*/
+					var searchInfo:InfoResult = pageData[i] as InfoResult;
+					searchInfo.symbol = comSymbol;
+					
+					graphicAC.addItem(searchInfo.geometry as MapPoint);
+					searchInfo.graphic = addPointOnMap(searchInfo);
+					infoAC.addItem(searchInfo);
+				}
+				
+				searchResultItem.dataProvider = infoAC;
+				
+				MapUni.dataExtent(graphicAC, map);
+			}
+			
+			
+			/**
+			 * 在地图上添加点 
+			*/
+			private function addPointOnMap(searchInfo:InfoResult):Graphic
+			{
+				var mapPoint:MapPoint = new MapPoint();
+				
+				switch(searchInfo.geometry.type)
+				{
+					case Geometry.MAPPOINT:
+						
+						mapPoint = searchInfo.geometry as MapPoint;
+						break;
+					
+					case Geometry.POLYLINE:
+						
+						var polyLine:Polyline = searchInfo.geometry as Polyline;
+						var pointArray:Array = polyLine.paths[0];
+						mapPoint = pointArray[Math.round(pointArray.length/2)];
+						
+						var LineGra:Graphic = new Graphic();
+						LineGra.geometry = polyLine;
+						LineGra.symbol = new SimpleLineSymbol("solid", 0x0000ff, 0.5, 3);
+						graphicLayer.add(LineGra);
+						
+						break;
+					
+					case Geometry.POLYGON:
+						
+						var polygon:Polygon = searchInfo.geometry as Polygon;
+						mapPoint = polygon.extent.center;
+						
+						var PolygonGra:Graphic = new Graphic();
+						PolygonGra.geometry = polygon;
+						PolygonGra.symbol = new SimpleFillSymbol("solid", 0x0000ff, 0.3, new SimpleLineSymbol());
+						graphicLayer.add(PolygonGra);
+						break;
+				}
+				
+				var pointGra:Graphic = new Graphic(mapPoint, searchInfo.symbol, searchInfo);
+				pointGra.toolTip = searchInfo.title;
+				
+				pointGra.addEventListener(MouseEvent.CLICK, onPointMouseClick);
+				pointGra.addEventListener(MouseEvent.ROLL_OVER, onPointMouseOver);
+				pointGra.addEventListener(MouseEvent.ROLL_OUT, onPointMouseOut);
+				
+				graphicLayer.add(pointGra);
+				
+				return pointGra;
+			}
+
+			
+			/**
+			 * 监听气泡窗口的关闭
+			 */
+			private function onInfoWindowclese(event:Event):void
+			{
+				var popupRenderer:PopUpRenderer = InfoWindow(event.currentTarget).content as PopUpRenderer;
+				if(popupRenderer)
+				{
+					var graphic:Graphic = popupRenderer.graphic;
+					
+					graphic.addEventListener(MouseEvent.ROLL_OVER, onPointMouseOver);
+					graphic.addEventListener(MouseEvent.ROLL_OUT, onPointMouseOut);
+					
+					var symbolText:String = getSymbolText(graphic.symbol as CompositeSymbol);
+					var comSymbol:CompositeSymbol = createPointSymbol(symbolText);
+					graphic.symbol = comSymbol;
+				}
+			}
+			
+			
+			/**
+			 * 监听鼠标点击查询结果图标
+			*/
+			private function onPointMouseClick(event:MouseEvent):void
+			{
+				var searchInfo:InfoResult = Graphic(event.currentTarget).attributes as InfoResult;
+				
+				var graphic:Graphic = searchInfo.graphic;
+				var symbolText:String = getSymbolText(graphic.symbol as CompositeSymbol);
+				var comSymbol:CompositeSymbol = createSeletedSymbol(symbolText);
+				
+				graphic.removeEventListener(MouseEvent.ROLL_OVER, removeEvent);
+				graphic.removeEventListener(MouseEvent.ROLL_OUT, removeEvent);
+				
+				graphic.symbol = comSymbol;
+				
+				MapUni.popupInfoWindow(map, searchInfo.graphic, searchInfo.title, searchInfo.content);
+				
+				
+				function removeEvent():void
+				{
+					var a:*;
+				}
+			}
+				
+			
+			/**
+			 * 监听鼠标移入查询结果 
+			*/
+			private function onPointMouseOver(event:MouseEvent):void
+			{
+				var graphic:Graphic = event.currentTarget as Graphic;
+				
+				var symbolText:String = getSymbolText(graphic.symbol as CompositeSymbol);
+				var comSymbol:CompositeSymbol = createSeletedSymbol(symbolText);
+				graphic.symbol = comSymbol;
+				
+				replaceItemSymbol(symbolText, true);
+			}
+				
+			
+			/**
+			 * 监听鼠标移出查询结果 
+			*/
+			private function onPointMouseOut(event:MouseEvent):void
+			{
+				var graphic:Graphic = event.currentTarget as Graphic;
+				
+				var symbolText:String = getSymbolText(graphic.symbol as CompositeSymbol);
+				var comSymbol:CompositeSymbol = createPointSymbol(symbolText);
+				graphic.symbol = comSymbol;
+				
+				replaceItemSymbol(symbolText, false);
+			}
+			
+			
+			/**
+			 * 替换结果列表中的指定项的符号
+			 * 
+			 * symbolText:地图上点符号中的数字信息
+			 * itemStateType：设置对应地图列表中项的选中状态
+			 */
+			private function replaceItemSymbol(symbolText:String, itemSelected:Boolean):void
+			{
+				try
+				{
+					var itemIndex:uint = Number(symbolText);
+					
+					var itemRenderer:SearchResultItemRenderer = searchResultItem.getVirtualElementAt(itemIndex-1) as SearchResultItemRenderer;
+					
+					if(itemRenderer)
+					{
+						if(itemSelected)
+						{
+							itemRenderer.currentState = "hovered";
+						}
+						else
+						{
+							itemRenderer.currentState = "normal";
+						}
+					}
+				}
+				catch(e:Error)
+				{
+					
+				}
+			}
+			
+			
+			/**
+			 * 获取到图形符号中的文本信息 
+			*/
+			private function getSymbolText(comSymbol:CompositeSymbol):String
+			{
+				var symbolText:String = "";
+				
+				if(comSymbol)
+				{
+					var symbolAC:ArrayCollection = comSymbol.symbols as ArrayCollection;
+					
+					for(var i:int=0; i<symbolAC.length; i++)
+					{
+						if(symbolAC[i] is TextSymbol)
+						{
+							var textSymbol:TextSymbol = symbolAC[i] as TextSymbol;
+							symbolText = textSymbol.text;
+						}
+					}
+				}
+				
+				return symbolText;
+			}
+
+			
+			/**
+			 * 创建普通符号 
+			*/
+			private function createPointSymbol(text:String):CompositeSymbol
+			{
+				var picSource:String = configXML.pointSmallPic;
+				
+				var comSymbol:CompositeSymbol = createComSymbol(picSource, 14, text, 19, 0xffffff);
+				
+				return comSymbol;
+			}
+			
+			
+			/**
+			 * 创建选中符号 
+			*/
+			private function createSeletedSymbol(text:String):CompositeSymbol
+			{
+				var picUrl:String = configXML.pointBigPic;
+				
+				var comSymbol:CompositeSymbol = createComSymbol(picUrl, 17, text, 24, 0xffffff);
+				
+				return comSymbol;
+			}
+			
+			
+			/**
+			 * 创建混合符号 
+			*/
+			private function createComSymbol(picUrl:String, picYoffset:uint, textStr:String, textYoffset:uint, textColor:Number):CompositeSymbol
+			{
+				var picSymbol:PictureMarkerSymbol = new PictureMarkerSymbol(picUrl);
+				picSymbol.yoffset = picYoffset;
+				
+				var textSymbol:TextSymbol = new TextSymbol(textStr);
+				textSymbol.yoffset = textYoffset;
+				textSymbol.textFormat = new TextFormat();
+				textSymbol.textFormat.color = textColor;
+				
+				var SymbolAC:ArrayCollection = new ArrayCollection([picSymbol, textSymbol]);
+				var comSymbol:CompositeSymbol = new CompositeSymbol(SymbolAC);
+				
+				return comSymbol;
+			}
+			
+			
+			/**
+			 * 清空 
+			*/
+            private function clear():void
+            {
+				graphicLayer.clear();
+				map.infoWindow.hide();
+            }
+			
+			
+			/**
+			 * 显示搜索信息 
+			*/
+			private function showMessage(msg:String, swfVisible:Boolean):void
+			{
+				txtMessage.text = msg;
+				swfMessage.visible = swfVisible;
+				msgVisible = true;
+			}
+			
+			
+			/**
+			 * 清空搜索信息 
+			*/
+			private function clearMessage():void
+			{
+				msgVisible = false;
+			}
+			
+			
+			/**
+			 * 显示错误信息 
+			*/
+			private function showErrorInfo(errorString:String):void
+			{
+				var widgetName:String = configXML.widgetInfo.@widgetName;
+				var widgetUsefulness:String = configXML.widgetInfo.@widgetUsefulness;
+				
+				var classInfo:String = "名称：" + widgetName + "\n" + "功能：" + widgetUsefulness + "\n"; 
+				
+				MapUni.errorWindow(classInfo + errorString);
+			}
+			
+			
+			/**
+			 * 监听鼠标移入查询列表 
+			*/
+			private function mouseOverSearchResult(event:Event):void
+			{
+				var searchInfo:InfoResult = SearchResultItemRenderer(event.target).data as InfoResult;
+				
+				var symbolText:String = getSymbolText(searchInfo.symbol as CompositeSymbol);
+				var comSymbol:CompositeSymbol = createSeletedSymbol(symbolText);
+				
+				replaceMapPointSymbol(searchInfo.graphic, comSymbol);
+				
+			}
+			
+			
+			/** 
+			 * 监听鼠标移出查询列表
+			*/
+			private function mouseOutSearchResult(event:Event):void
+			{
+				var searchInfo:InfoResult = SearchResultItemRenderer(event.target).data as InfoResult;
+				
+				var symbolText:String = getSymbolText(searchInfo.symbol as CompositeSymbol);
+				var comSymbol:CompositeSymbol = createPointSymbol(symbolText);
+				
+				replaceMapPointSymbol(searchInfo.graphic, comSymbol);
+			}
+			
+			
+			/**
+			 * 替换地图上某一点位符号 
+			*/
+			private function replaceMapPointSymbol(graphic:Graphic, symbol:Symbol):void
+			{
+				var graphicAC:ArrayCollection = graphicLayer.graphicProvider as ArrayCollection;
+				
+				for(var i:int=0; i<graphicAC.length; i++)
+				{
+					var mapGra:Graphic = graphicAC[i] as Graphic;
+					
+					if(mapGra == graphic)
+					{
+						graphic.symbol = symbol;
+					}
+				}
+			}
+				
+			
+			/**
+			 * 监听结果列表的鼠标点击事件 
+			*/
+			private function clickSearchResult(event:Event):void
+			{
+				var searchInfo:InfoResult = SearchResultItemRenderer(event.target).data as InfoResult;
+				
+				map.centerAt(searchInfo.geometry as MapPoint);
+				
+				MapUni.popupInfoWindow(map, searchInfo.graphic, searchInfo.title, searchInfo.content);
+			}
+			
+			private function widgetOpenedHandler(event:Event):void
+			{
+				if(graphicLayer)
+				{
+					graphicLayer.visible=true;
+				}
+				
+			}
+			
+            private function widgetClosedHandler(event:Event):void
+            {
+				if(graphicLayer)
+				{
+					graphicLayer.visible=false;
+					graphicLayer.clear();
+					
+				}
+				CursorManager.removeBusyCursor();
+				
+				onClearMap(null);
+            }
+
+
+        ]]>
+    </fx:Script>
+	
+	
+	<viewer:states>
+		<s:State name="search"/>
+		<s:State name="result"/>
+	</viewer:states>
+	
+	<viewer:transitions>
+		<s:Transition autoReverse="true" fromState="*" toState="*">
+			<s:Sequence>
+				<s:Parallel>
+					<s:Resize duration="500" target="{wTemplate}" />
+				</s:Parallel>
+				<s:Parallel>
+					<s:Fade duration="500" target="{resultsList}"  />
+				</s:Parallel>
+			</s:Sequence>
+		</s:Transition>
+	</viewer:transitions>
+	
+
+	<viewer:WidgetTemplate id="wTemplate"
+						   minWidth="345"
+						   width="360" height.search="400" height.result="400" 
+						   closed="widgetClosedHandler(event)"
+						   open="widgetOpenedHandler(event)"
+						   >
+		<s:VGroup width="100%" height="100%"
+				  paddingTop="5"
+				  gap="4"
+				  >
+			<!-- textInput -->
+			<s:HGroup id="textInput"
+					  width="100%" top="5"
+					  gap="10"
+					  horizontalAlign="center"
+					  >
+				<s:TextInput id="txtSearch"
+							 left="10" 
+							 enter="queryFeaturesText()" width="180"/>
+				<s:Button label="搜索"
+						  width="60"
+						  click="queryFeaturesText()" 
+						  />
+			</s:HGroup>
+			
+			<!-- tooltip -->
+			<s:HGroup id="boxMessage" width="100%" verticalAlign="bottom"
+					  includeInLayout="{msgVisible}" visible="{msgVisible}"  >
+				<!--<mx:Spacer width="8" />-->
+				<mx:Image id="swfMessage" source="assets/images/loader.swf" visible="false"/>
+				<s:Label id="txtMessage" width="98%"  verticalAlign="middle"/>
+			</s:HGroup>
+			
+			<mx:Spacer height="5" />
+			
+			<!-- result-->
+			<s:Group id="resultsList"
+					 width="100%" height="100%" visible.search="false" visible.result="true"
+					 >
+				<s:layout>
+					<s:VerticalLayout gap="3"/>
+				</s:layout>
+				
+				<s:Scroller width="100%" height="100%" >
+					<Search:SearchResultDataGroup id="searchResultItem" 
+												  searchResultClick="clickSearchResult(event)"
+												  searchResultMouseOut="mouseOutSearchResult(event)"
+												  searchResultMouseOver="mouseOverSearchResult(event)">
+						<Search:layout>
+							<s:VerticalLayout gap="2"
+											  horizontalAlign="justify"
+											  useVirtualLayout="true"/>
+						</Search:layout>
+					</Search:SearchResultDataGroup>
+				</s:Scroller>
+				<pageNavigation:UC_PageNavigation id="pageNavi" 
+												  pageChange="pageNaviChange(event)" 
+												  />
+			</s:Group>
+		</s:VGroup>
+	</viewer:WidgetTemplate>
+
+</viewer:BaseWidget>

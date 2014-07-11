@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<configuration>
+	
+	<widgetInfo>"名称：测量模块\n 功能：测量点的经纬度、线的距离、面的面积\n";</widgetInfo>
+	
+	<!-- 点位信息图标 -->
+	<pushpinIcon>assets/yutuImages/mapIcon/pushpin_centered.png</pushpinIcon>
+	
+	<!-- 污染源 -->
+	<polluteUrl  nameField="QYMC" codeField="QYDM">
+		http://218.60.147.63/ArcGIS/rest/services/LNMap/MapServer/87
+	</polluteUrl>
+	<!-- 省界 -->
+	<regionalUrl>
+		http://218.60.147.63/ArcGIS/rest/services/LNMap/MapServer/85
+	</regionalUrl>
+	<!-- 市 -->
+	<cityUrl>
+		http://218.60.147.63/ArcGIS/rest/services/LNMap/MapServer/86
+	</cityUrl>
+	<!-- 县 -->
+    <countyUrl>
+		http://218.60.147.63/ArcGIS/rest/services/LNMap/MapServer/78
+	</countyUrl>
+	
+	
+</configuration>
+

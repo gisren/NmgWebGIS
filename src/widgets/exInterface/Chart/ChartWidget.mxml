@@ -1,0 +1,376 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:viewer="com.esri.viewer.*"
+				   widgetConfigLoaded="configLoad()"
+				   >
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.FeatureSet;
+			import com.esri.ags.Graphic;
+			import com.esri.ags.geometry.Geometry;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.geometry.Polygon;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.utils.JSON;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			import com.esri.viewer.utils.Hashtable;
+			import com.mapUni.BaseClass.MapUni;
+			import com.mapUni.FunctionClass.MapChart.UF_MapChart;
+			
+			import flash.utils.setTimeout;
+			
+			import mx.collections.ArrayCollection;
+			
+			
+			private var chartGraLayer:GraphicsLayer;
+			
+			/**
+			 * 完成读取配置文件
+			 */
+			private function configLoad():void
+			{
+				ViewerContainer.addEventListener(AppEvent.CLEAR_MAP, clearMapChart);
+				
+				chartGraLayer = new GraphicsLayer(); 
+				chartGraLayer.name = "chart";
+				
+				map.addLayer(chartGraLayer);
+				
+				if(configXML)
+				{
+					var exChartListName:String = configXML.externalInterface.exAddChartList;
+					var exChartListStrName:String = configXML.externalInterface.exAddChartListStr;
+					var exClearChartName:String = configXML.externalInterface.exClearChart;
+					
+					ExternalInterface.addCallback(exChartListName, addChart);
+					ExternalInterface.addCallback(exChartListStrName, addChartStr);
+					ExternalInterface.addCallback(exClearChartName, clearMapChart);
+					
+//					test();
+				}
+			}
+			
+			
+			/**
+			 * 测试 
+			*/
+			private function test():void
+			{
+				var obj1:Object = { name:"花生", data:19, color:0xff0000, toolTip:"花生豆"};
+				var obj2:Object = { name:"大豆", data:29, color:0xfeade0, toolTip:"大豆油"};
+				var obj3:Object = { name:"玉米", data:39, color:0xeeee00, toolTip:"玉米面"};
+				
+				var obj4:Object = { name:"花生", data:14, color:0xff0000, toolTip:"花生豆"};
+				var obj5:Object = { name:"大豆", data:39, color:0xfeade0, toolTip:"大豆油"};
+				var obj6:Object = { name:"玉米", data:24, color:0xeeee00, toolTip:"玉米面"};
+				
+				var obj7:Object = { name:"花生", data:26, color:0xff0000, toolTip:"花生豆"};
+				var obj8:Object = { name:"大豆", data:17, color:0xfeade0, toolTip:"大豆油"};
+				var obj9:Object = { name:"玉米", data:19, color:0xeeee00, toolTip:"玉米面"};
+				
+				var object4:Object = { name:"广陵区", series:[obj1, obj2, obj3]};
+				var object5:Object = { name:"江都市", series:[obj4, obj5, obj6]}; 
+				var object6:Object = { name:"仪征市", series:[obj7, obj8, obj9]};
+				
+				
+				var array3:Array = [object4, object5, object6];
+				
+				//columnChart, pieChart, lineChart
+				
+				var data1:Object = { 
+					chartType:{name:"columnChart"}, 
+					searchLocal:{enable:true, layerName:"市界",  searchWhere:"NAME = '吉林市'" },
+					chartLocal: {enable:false, X:119.73104226928545, Y:31.837785747495523}, 
+					chartTitle: {name:"南京市"}, 
+					chartSize:	{initialSize:100, maxSize:200, minSize:30},
+					clickCallback:{funcName:"onChartClick", parameter:[1,2]}, 
+					chartData: array3
+					};
+				
+				var data2:Object = { 
+					chartType:{name:"columnChart"}, 
+					searchLocal:{enable:true, layerName:"js_县界",  searchWhere:"Name='丰县'" },
+					chartLocal: {enable:false}, 
+					chartTitle: {name:"扬州市"},
+					chartSize:	{initialSize:100},
+					chartData: array3 
+					};
+				
+				var array2:Array = [data1]; //, data2
+				
+//				var str:String = JSON.encode(array2);
+				
+//				var str:String = "[{\"chartData\":[{\"name\":\"在建项目\",\"series\":[{\"color\":\"0x008000\",\"data\":\"1\",\"name\":\"项目数\",\"toolTip\":\"在建项目数\"},{\"color\":\"0x008000\",\"data\":\"31020.00\",\"name\":\"项目总投资\",\"toolTip\":\"在建项目总投资\"}]},{\"name\":\"扩建项目\",\"series\":[{\"color\":\"0x0000FF\",\"data\":\"0\",\"name\":\"项目数\",\"toolTip\":\"扩建项目数\"},{\"color\":\"0x0000FF\",\"data\":\"0.00\",\"name\":\"项目总投资\",\"toolTip\":\"扩建项目总投资\"}]},{\"name\":\"技术改造项目\",\"series\":[{\"color\":\"0xFFA500\",\"data\":\"0\",\"name\":\"项目数\",\"toolTip\":\"技术改造项目数\"},{\"color\":\"0xFFA500\",\"data\":\"0.00\",\"name\":\"项目总投资\",\"toolTip\":\"技术改造项目总投资\"}]}],\"chartLocal\":null,\"chartSize\":{\"initialSize\":80},\"chartTitle\":{\"name\":\"丰县\"},\"chartType\":{\"name\":\"PieChart\"},\"clickCallback\":{\"funcName\":\"\",\"parameter\":[null,null]},\"searchLocal\":{\"enable\":true,\"layerName\":\"js_县界\",\"searchWhere\":\"Name='丰县'\"}},{\"chartData\":[{\"name\":\"在建项目\",\"series\":[{\"color\":\"0x008000\",\"data\":\"2\",\"name\":\"项目数\",\"toolTip\":\"在建项目数\"},{\"color\":\"0x008000\",\"data\":\"9020.34\",\"name\":\"项目总投资\",\"toolTip\":\"在建项目总投资\"}]},{\"name\":\"扩建项目\",\"series\":[{\"color\":\"0x0000FF\",\"data\":\"0\",\"name\":\"项目数\",\"toolTip\":\"扩建项目数\"},{\"color\":\"0x0000FF\",\"data\":\"0.00\",\"name\":\"项目总投资\",\"toolTip\":\"扩建项目总投资\"}]},{\"name\":\"技术改造项目\",\"series\":[{\"color\":\"0xFFA500\",\"data\":\"1\",\"name\":\"项目数\",\"toolTip\":\"技术改造项目数\"},{\"color\":\"0xFFA500\",\"data\":\"1271.80\",\"name\":\"项目总投资\",\"toolTip\":\"技术改造项目总投资\"}]}],\"chartLocal\":null,\"chartSize\":{\"initialSize\":80},\"chartTitle\":{\"name\":\"铜山县\"},\"chartType\":{\"name\":\"PieChart\"},\"clickCallback\":{\"funcName\":\"\",\"parameter\":[null,null]},\"searchLocal\":{\"enable\":true,\"layerName\":\"js_县界\",\"searchWhere\":\"Name='铜山县'\"}},{\"chartData\":[{\"name\":\"在建项目\",\"series\":[{\"color\":\"0x008000\",\"data\":\"1\",\"name\":\"项目数\",\"toolTip\":\"在建项目数\"},{\"color\":\"0x008000\",\"data\":\"84730.00\",\"name\":\"项目总投资\",\"toolTip\":\"在建项目总投资\"}]},{\"name\":\"扩建项目\",\"series\":[{\"color\":\"0x0000FF\",\"data\":\"0\",\"name\":\"项目数\",\"toolTip\":\"扩建项目数\"},{\"color\":\"0x0000FF\",\"data\":\"0.00\",\"name\":\"项目总投资\",\"toolTip\":\"扩建项目总投资\"}]},{\"name\":\"技术改造项目\",\"series\":[{\"color\":\"0xFFA500\",\"data\":\"0\",\"name\":\"项目数\",\"toolTip\":\"技术改造项目数\"},{\"color\":\"0xFFA500\",\"data\":\"0.00\",\"name\":\"项目总投资\",\"toolTip\":\"技术改造项目总投资\"}]}],\"chartLocal\":null,\"chartSize\":{\"initialSize\":80},\"chartTitle\":{\"name\":\"睢宁县\"},\"chartType\":{\"name\":\"PieChart\"},\"clickCallback\":{\"funcName\":\"\",\"parameter\":[null,null]},\"searchLocal\":{\"enable\":true,\"layerName\":\"js_县界\",\"searchWhere\":\"Name='睢宁县'\"}},{\"chartData\":[{\"name\":\"在建项目\",\"series\":[{\"color\":\"0x008000\",\"data\":\"3\",\"name\":\"项目数\",\"toolTip\":\"在建项目数\"},{\"color\":\"0x008000\",\"data\":\"84953.30\",\"name\":\"项目总投资\",\"toolTip\":\"在建项目总投资\"}]},{\"name\":\"扩建项目\",\"series\":[{\"color\":\"0x0000FF\",\"data\":\"0\",\"name\":\"项目数\",\"toolTip\":\"扩建项目数\"},{\"color\":\"0x0000FF\",\"data\":\"0.00\",\"name\":\"项目总投资\",\"toolTip\":\"扩建项目总投资\"}]},{\"name\":\"技术改造项目\",\"series\":[{\"color\":\"0xFFA500\",\"data\":\"1\",\"name\":\"项目数\",\"toolTip\":\"技术改造项目数\"},{\"color\":\"0xFFA500\",\"data\":\"19994.00\",\"name\":\"项目总投资\",\"toolTip\":\"技术改造项目总投资\"}]}],\"chartLocal\":null,\"chartSize\":{\"initialSize\":80},\"chartTitle\":{\"name\":\"新沂市\"},\"chartType\":{\"name\":\"PieChart\"},\"clickCallback\":{\"funcName\":\"\",\"parameter\":[null,null]},\"searchLocal\":{\"enable\":true,\"layerName\":\"js_县界\",\"searchWhere\":\"Name='新沂市'\"}}]";
+				
+//				var array:Array = JSON.decode(str);
+				
+				var str:String = "[{\"chartLocal\":{\"enable\":false,\"X\":119.73104226928545,\"Y\":31.837785747495523},\"chartTitle\":{\"name\":\"吉林省\"},\"clickCallback\":{\"parameter\":[1,2],\"funcName\":\"onChartClick\"},\"searchLocal\":{\"enable\":true,\"searchWhere\":\"NAME='吉林市'\",\"layerName\":\"市界\"},\"chartSize\":{\"minSize\":30,\"maxSize\":200,\"initialSize\":100},\"chartData\":[{\"series\":[{\"data\":2,\"name\":\"执行中\",\"color\":65280,\"toolTip\":\"执行中\"}],\"name\":\"执行中\"}],\"chartType\":{\"name\":\"pieChart\"}}]";
+				
+				setTimeout(addChartStr, 5000, str);
+				
+				setTimeout(addChart, 5000, array2);
+					
+			}
+			
+			private function addChartStr(value:String):void
+			{
+				var dataArray:Array = null;
+				try
+				{
+					dataArray = JSON.decode(value);
+				}
+				catch(e:Error)
+				{
+					MapUni.errorWindow("数据格式有误\n" + e.toString());
+				}
+				
+				if(dataArray)
+				{
+					addChart(dataArray);
+				}
+			}
+			
+			
+			/**
+			 * 添加图表 
+			*/
+			private function addChart(chartAry:Array):void
+			{
+				if(chartAry)
+				{
+					for(var i:int=0; i<chartAry.length; i++)
+					{
+						var chartObj:Object = chartAry[i];
+						
+						getLocate(chartObj);
+					}
+				}
+			}
+			
+			
+			/**
+			 * 创建图表 
+			*/
+			private function createChart(mapPoint:MapPoint, chartObj:Object):void
+			{
+				var chartTypeObj:Object = chartObj["chartType"];
+				var chartTitleObj:Object = chartObj["chartTitle"];
+				var chartSizeObj:Object = chartObj["chartSize"];
+				var chartDataAry:Array = chartObj["chartData"];
+				
+				var chartType:String = "ColumnChart";
+				var chartInitSize:Number = 80;
+				var chartMaxSize:Number = 300;
+				var chartMinSize:Number = 40;
+				var chartTitle:String = "";
+				
+				var chartDataParam:Object = new Object();
+				
+				if(chartTypeObj)
+				{
+					chartType = chartTypeObj["name"];
+				}
+				if(chartTitleObj)
+				{
+					chartTitle = chartTitleObj["name"];
+				}
+				if(chartSizeObj)
+				{
+					chartInitSize = chartSizeObj["initialSize"];
+					chartMaxSize = chartSizeObj["maxSize"];
+					chartMinSize = chartSizeObj["minSize"]; 
+				}
+				if(chartDataAry)
+				{
+					chartDataParam = reSetData(chartDataAry);
+				}
+				
+				
+				var mapChat:StatMapchart = new StatMapchart(map, chartGraLayer);
+				mapChat.F_addChartOnMap(mapPoint, chartInitSize, chartType, chartDataParam.chartData, "name", 
+										chartDataParam.valueFileds, chartDataParam.valuesName, 
+										chartDataParam.colorArray, null, chartMaxSize, chartMinSize);
+			}
+			
+			
+			private function reSetData(chartData:Array):Object
+			{
+				var chartDataAC:ArrayCollection = new ArrayCollection();
+				
+				var valueFiledArr:Array = new Array();
+				var colorArray:Array = new Array();
+				
+				var valuesNameHashtable:Hashtable = new Hashtable();
+				
+				for(var i:int=0; i<chartData.length; i++)
+				{
+					var itemObj:Object = chartData[i];
+					
+					var itemName:String = itemObj["name"];
+					var itemData:Array = itemObj["series"];
+					
+					var newItemObj:Object = new Object();
+					newItemObj.name = itemName;
+					
+					for(var n:int=0; n<itemData.length; n++)
+					{
+						var seriesObj:Object = itemData[n];
+						
+						var seriesName:String = seriesObj["name"];
+						var seriesData:Number = seriesObj["data"];
+						var seriesColor:Number = seriesObj["color"];
+						
+						newItemObj["value" + n] = seriesData;
+						
+						colorArray.push(seriesColor);
+						
+						if(i == 1)
+						{
+							valueFiledArr.push("value" + n.toString());
+							valuesNameHashtable.add(("value" + n.toString()), seriesName); 
+						}
+					}
+					
+					chartDataAC.addItem(newItemObj);
+				}
+				
+				var chartDataParam:Object = new Object();
+				chartDataParam.chartData = chartDataAC;
+				chartDataParam.valueFileds = valueFiledArr;
+				chartDataParam.colorArray = colorArray;
+				chartDataParam.valuesName = valuesNameHashtable;
+				
+				return chartDataParam;
+			}
+			
+			
+			/**
+			 * 回调js函数
+			*/
+			private function onChartClick(event:Event):void
+			{
+				var chartObj:Object = event.currentTarget.V_targetChart;
+				
+				if(chartObj["clickCallback"])
+				{
+					var callbackName:String = chartObj["clickCallback"]["funcName"];
+					var callbackParam:Array = chartObj["clickCallback"]["parameter"];
+					
+					ExternalInterface.call(callbackName, chartObj, callbackParam);
+				}
+				
+			}
+			
+			
+			/**
+			 * 获取图表位置 
+			*/
+			private function getLocate(chartObj:Object):void
+			{
+				var seachLocal:Object = chartObj["searchLocal"];
+				
+				var chartLocal:Object = chartObj["chartLocal"];
+				
+				if(chartLocal)
+				{
+					if(chartLocal["enable"] != false && chartLocal["enable"] != "false")
+					{
+						var long:Number = chartLocal["X"];
+						var lat:Number = chartLocal["Y"];
+						
+						var mapPoint:MapPoint = new MapPoint(long, lat);
+						
+						createChart(mapPoint, chartObj);
+					}
+					else
+					{
+						if(seachLocal)
+						{
+							if(seachLocal["enable"] != false && seachLocal["enable"] != "false")
+							{
+								var layerName:String = seachLocal["layerName"];
+								var searchWhere:String = seachLocal["searchWhere"];
+								
+								
+								var layerUrl:String = MapUni.layerUrl(map, layerName);
+								
+								MapUni.search(layerUrl, null, searchWhere, onSearchRest, [chartObj]);
+							}
+						}
+					}
+				}
+				else if(seachLocal)
+				{
+					if(seachLocal["enable"] != false && seachLocal["enable"] != "false")
+					{
+						var layerName2:String = seachLocal["layerName"];
+						var searchWhere2:String = seachLocal["searchWhere"];
+						
+						
+						var layerUrl2:String = MapUni.layerUrl(map, layerName2);
+						
+						MapUni.search(layerUrl2, null, searchWhere2, onSearchRest, [chartObj]);
+					}
+				}
+			}
+
+			
+			/**
+			 * 响应成功查询到图标所在位置的点
+			 */		
+			private function onSearchRest(rest:FeatureSet, chartAry:Array):void
+			{
+				if(rest && rest.features.length)
+				{
+					var mapPoint:MapPoint = new MapPoint();
+					
+					var geometry:Geometry = Graphic(rest.features[0]).geometry;
+					
+					if(geometry.type == Geometry.MAPPOINT)
+					{
+						mapPoint = geometry as MapPoint;
+					}
+					else
+					{
+						mapPoint = geometry.extent.center;
+					}
+					
+					createChart(mapPoint, chartAry[0]);
+				}
+			}
+			
+			
+			/**
+			 * 清除地图上的图表 
+			*/
+			private function clearMapChart(event:Event=null):void
+			{
+				chartGraLayer.clear();
+			}
+		
+			
+			
+		]]>
+	</fx:Script>
+	
+</viewer:BaseWidget>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

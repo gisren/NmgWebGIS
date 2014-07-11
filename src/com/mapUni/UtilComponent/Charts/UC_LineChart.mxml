@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 creationComplete="init()"
+		 >
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.utils.Hashtable;
+			
+			import mx.charts.AxisRenderer;
+			import mx.charts.HitData;
+			import mx.charts.renderers.CircleItemRenderer;
+			import mx.charts.series.LineSeries;
+			import mx.collections.ArrayCollection;
+			import mx.graphics.GradientEntry;
+			import mx.graphics.LinearGradient;
+			import mx.graphics.SolidColorStroke;
+			
+			
+			[Bindable]
+			/**
+			 * 数据
+			 */
+			public var V_dataProvider:ArrayCollection = new ArrayCollection();
+			
+			[Bindable]
+			/** 
+			 * 鼠标移动上时显示提示框 
+			 */
+			public var V_showDataTips:Boolean = true;
+			
+			[Bindable]
+			/** 
+			 * 显示所有提示框 
+			 */
+			public var V_showAllDataTips:Boolean = false;
+			
+			[Bindable]
+			/**
+			 * X轴上展示项的字段名 
+			 */
+			public var V_nameField:String = "";
+			
+			/**
+			 * Y轴上要展示的数据项字段，数组格式
+			 */
+			public var V_valueFields:Array = new Array();
+			
+			/**
+			 * V_valueFields 数据字段所对应名称的键值对儿 
+			 */
+			public var V_nameHashtable:Hashtable;
+			
+			[Bindable]
+			/**
+			 * 图表标题
+			 */
+			public var V_title:String = "";
+			
+			/**
+			 * 定义X轴上每一项的颜色,如果给定的颜色数与项数不符，则会按给定的颜色依次循环赋值<br/>
+			 * 如果每一项中又包含若干系列，那么同一项中的所有系列的颜色将会相同。<br/>
+			 */
+			public var V_fillColors:Array = null;
+			
+			/**
+			 * 文字颜色 
+			 */
+			public var V_textColor:uint;
+			
+			
+			private function init():void
+			{
+				//设置图表数据项
+				setChartSeries();
+				
+				//设置图表属性
+				setChatProperty();
+			} 
+			
+			
+			/**
+			 * 设置图表属性 
+			 */
+			private function setChatProperty():void
+			{
+				//字段中文名称哈希表
+				if(V_nameHashtable)
+				{
+					lineChart.dataTipFunction = reSetDataTip;
+				}
+				
+				//文字颜色
+				if(V_textColor)
+				{
+					lineChart.setStyle("color", V_textColor);
+				}
+			}
+			
+			
+			/**
+			 * 设置图标数据项 
+			 */
+			private function setChartSeries():void
+			{
+				var seriesArray:Array = new Array();
+				
+				for(var i:int=0; i<V_valueFields.length; i++)
+				{
+					var lineSeries:LineSeries = new LineSeries();
+					lineSeries.yField = V_valueFields[i];
+					lineSeries.displayName = V_valueFields[i];
+					lineSeries.setStyle("form","segment");
+					
+					var circleItemRendererFactory:ClassFactory = new ClassFactory(CircleItemRenderer);
+					lineSeries.setStyle("itemRenderer", circleItemRendererFactory);
+					
+					if(V_fillColors)
+					{
+						if(V_fillColors[i])
+						{
+							var stroke:SolidColorStroke = new SolidColorStroke(V_fillColors[i], 2);
+							lineSeries.setStyle("lineStroke", stroke);
+						}
+						else
+						{
+							var index:Number = i - V_fillColors.length;
+							
+							var stroke2:SolidColorStroke = new SolidColorStroke(V_fillColors[index], 2);
+							lineSeries.setStyle("lineStroke", stroke2);
+						}
+					} 
+					seriesArray.push(lineSeries);
+				}
+				lineChart.series = seriesArray;
+			}
+			
+			
+			/**
+			 * 功能：重新定义数据提示框中的内容 
+			 */
+			private function reSetDataTip(hitData:HitData):String
+			{
+				var key:String = hitData.element["yField"];
+				
+				var name:String = V_nameHashtable.find(key);
+				
+				var toopTip:String = name + "\n" + hitData.item[V_nameField] + "\n" + hitData.item[key];
+				
+				return toopTip;
+			} 
+			
+			
+		]]>
+	</fx:Script>
+	
+	
+	<mx:LineChart id="lineChart"
+				  width="100%" height="100%"
+				  dataProvider="{V_dataProvider}"
+				  showDataTips="{V_showDataTips}"
+				  showAllDataTips="{V_showAllDataTips}" 
+				  fontSize="12"
+				  >
+		
+		<!--<mx:series>
+			<mx:LineSeries form="segment"
+		</mx:series>-->
+		
+		<mx:horizontalAxis>
+			<mx:CategoryAxis id="categoryAxis" categoryField="{V_nameField}" title="{V_title}"/>
+		</mx:horizontalAxis>
+		
+		
+	</mx:LineChart>
+	
+</s:Group>

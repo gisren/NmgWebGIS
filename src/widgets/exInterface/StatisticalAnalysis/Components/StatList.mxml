@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 creationComplete="init()"
+		 >
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.ViewerContainer;
+			
+			import mx.collections.ArrayCollection;
+			import mx.core.FlexGlobals;
+			import mx.managers.PopUpManager;
+			import mx.states.State;
+			
+			import widgets.exInterface.StatisticalAnalysis.Control.StatEvent;
+			
+			
+			private function init():void
+			{
+				ViewerContainer.addEventListener(StatEvent.STAT_ITEM_CLICK, onItemGroupClick);
+			}	
+			
+			
+			private var configXML:XML = new XML();
+			
+			
+			
+			/**
+			 * 模块配置文件 
+			*/
+			public function set ConfigXML(vaule:XML):void
+			{
+				configXML = vaule;
+				
+				var itemList:XMLList = configXML.statItem.mainItem.item;
+				
+				firstLevelItemGroup.dataProvider = setDataGroupDataProvider(itemList);
+			}
+			
+			
+			/**
+			 * 监听：列表的点击 
+			*/
+			private function onItemGroupClick(event:StatEvent):void
+			{
+				var itemObj:Object = event.data;
+				
+				if(itemObj.nextLevel)
+				{
+					var itemList:XMLList = configXML.statItem[itemObj.nextLevel].item;
+					
+					secondLevelItemGroup.dataProvider = setDataGroupDataProvider(itemList);
+					
+					this.currentState = "statSecondList";
+				}
+				else
+				{
+					ViewerContainer.dispatchEvent(new StatEvent(StatEvent.STAT_PARAM_SEND, itemObj));
+				}
+			}
+			
+			
+			/**
+			 * 功能：设置列表数据源 
+			*/
+			private function setDataGroupDataProvider(itemList:XMLList):ArrayCollection
+			{
+				var itemAC:ArrayCollection = new ArrayCollection();
+				
+				for(var i:int=0; i<itemList.length(); i++)
+				{
+					var itemObj:Object = new Object();
+					itemObj.nextLevel = itemList[i].@nextLevel.toString();
+					itemObj.label = itemList[i].@label.toString();
+					itemObj.icon = itemList[i].@icon.toString();
+					itemObj.id = itemList[i].@id.toString();
+					
+					itemAC.addItem(itemObj);
+				}
+				
+				return itemAC;
+			}
+			
+			
+			/**
+			 * 功能：返回到一级目录 
+			*/
+			private function backButtonClick():void
+			{
+				this.currentState = "statFirstList";
+			}
+			
+			
+		]]>
+	</fx:Script>
+	
+	
+	<s:states>
+		<s:State name="statFirstList" />
+		<s:State name="statSecondList" />
+	</s:states>
+	
+	<s:transitions>
+		<s:Transition fromState="statFirstList" toState="statSecondList">
+			<s:Parallel>
+				<mx:AnimateProperty property="x"
+									fromValue="{firstLevelItemGroup.x}"
+									toValue="{-firstLevelItemGroup.width}"
+									target="{itemsContent}"
+									duration="800"
+									/>
+				<s:Wipe direction="right"
+						duration="800"
+						target="{firstLevelItemGroup}"
+						/>
+				<s:Wipe direction="right"
+						duration="800"
+						target="{secondLevelGroup}"
+						/>
+			</s:Parallel>
+		</s:Transition>
+		<s:Transition fromState="statSecondList" toState="statFirstList">
+			<s:Parallel>
+				<mx:AnimateProperty property="x"
+									fromValue="{-firstLevelItemGroup.width}"
+									toValue="{firstLevelItemGroup.x}"
+									target="{itemsContent}"
+									duration="800"
+									/>
+				<s:Wipe direction="left"
+						duration="800"
+						target="{secondLevelGroup}"
+						/>
+				<s:Wipe direction="left"
+						duration="800"
+						target="{firstLevelItemGroup}"
+						/>
+			</s:Parallel>
+		</s:Transition>
+	</s:transitions>
+	
+	<s:HGroup id="itemsContent" width="300" height="100%" gap="0">
+		<s:DataGroup id="firstLevelItemGroup" visible.statSecondList="false"
+					 width="{itemsContent.width-40}" height="100%" 
+					 itemRenderer="widgets.exInterface.StatisticalAnalysis.Skin.StatDataGroupItemRenderer" 
+					 >
+			<s:layout>
+				<s:VerticalLayout gap="2" />
+			</s:layout>
+		</s:DataGroup>
+		
+		<s:VGroup id="secondLevelGroup" visible.statFirstList="false"   
+				  width="100%" height="100%"
+				  >
+			<s:DataGroup id="secondLevelItemGroup" visible.statFirstList="false"  
+						 width="{itemsContent.width-40}" height="100%"
+						 itemRenderer="widgets.exInterface.StatisticalAnalysis.Skin.StatDataGroupItemRenderer" 
+						 >
+				<s:layout>
+					<s:VerticalLayout gap="2" />
+				</s:layout>
+			</s:DataGroup>
+			<s:HGroup width="100%" horizontalAlign="right">
+				<s:Button label="返回" click="backButtonClick()" />
+			</s:HGroup>
+		</s:VGroup>
+	</s:HGroup>
+	
+</s:Group>

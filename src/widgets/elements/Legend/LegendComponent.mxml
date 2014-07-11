@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:SkinnableContainer xmlns:fx="http://ns.adobe.com/mxml/2009"
+					  xmlns:s="library://ns.adobe.com/flex/spark"
+					  xmlns:mx="library://ns.adobe.com/flex/mx"
+					  xmlns:esri="http://www.esri.com/2008/ags"
+					  xmlns:Legend="com.mapUni.FunctionClass.Legend.*" 
+					  creationComplete="skinnablecontainer1_creationCompleteHandler(event)"
+					  
+					  >
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Map;
+			
+			import mx.events.EffectEvent;
+			import mx.events.FlexEvent;
+			import mx.events.ResizeEvent;
+			
+			import spark.components.Scroller;
+			import spark.effects.Resize;
+			
+			[Bindable]
+			public var map:Map = new Map();
+			
+			
+			[Bindable]
+			private var openToolTip:String;
+			[Bindable]
+			private var closeToolTip:String;
+			
+			
+			public var openDefaultToolTip:String;
+			public var closeDefaultToolTip:String;
+			
+			
+			
+			/**
+			 * 设置地图图例图片的地址 
+			 */
+			public function set mapLegendUrl(value:String):void
+			{
+				mapLegendImg.source = value;
+			}
+			
+			/**
+			 * 监听图例数量变化
+			 */
+			private function dynamicLegend_numChangeHandler():void
+			{
+				//根据图例当前的数量决定是否显示图例
+				if(dynamicLegend.V_NumLegendItem > 0 ){
+					currentState = "expanded2";
+					
+					changeLegendHeight();
+				}
+				else{
+					currentState = "collapsed2";
+				}
+			}
+			
+			
+			/**
+			 * 根据图例内容的高度来调整外部图例框的高度
+			 */
+			private function changeLegendHeight():void
+			{
+				var minLegendHeight:Number = 300;
+				var maxLegendHeight:Number = 300;
+				
+				var minDyLegendHeight:Number = minLegendHeight - Number(dynamicLegend.top) - Number(dynamicLegend.bottom);
+				var maxDyLegendHeight:Number = maxLegendHeight - Number(dynamicLegend.top) - Number(dynamicLegend.bottom);
+				
+				var dyLegendHeight:Number = viewBox.height;
+				var legendHeight:Number = dynamicLegend.legendHeight;
+				
+				if(legendHeight >= minDyLegendHeight && legendHeight <= maxDyLegendHeight)
+				{
+					var toHeight:Number = dynamicLegend.legendHeight + dynamicLegend.top + dynamicLegend.bottom;
+					
+					if(toHeight > maxLegendHeight)
+					{
+						changeHeightEffect(viewBox, dyLegendHeight, maxLegendHeight);
+					}
+					else if(toHeight < minLegendHeight)
+					{
+						changeHeightEffect(viewBox, dyLegendHeight, minLegendHeight);
+					}
+					else
+					{
+						changeHeightEffect(viewBox, dyLegendHeight, toHeight);
+					}
+				}
+				else if(legendHeight < minDyLegendHeight)
+				{
+					if(dyLegendHeight != minLegendHeight)
+					{
+						changeHeightEffect(viewBox, dyLegendHeight, minLegendHeight);
+					}
+				}
+				else if(legendHeight > maxDyLegendHeight)
+				{
+					if(dyLegendHeight != maxLegendHeight)
+					{
+						changeHeightEffect(viewBox, dyLegendHeight, maxLegendHeight);
+					}
+				}
+			}
+			
+			
+			/**
+			 * 运用效果改变目标的高度 
+			 */
+			private function changeHeightEffect(target:BorderContainer, fromHeight:Number, toHeight:Number):void
+			{
+				var resize:Resize = new Resize(target);
+				resize.heightFrom = fromHeight;
+				resize.heightTo = toHeight;
+				resize.duration = 500;
+				resize.addEventListener(EffectEvent.EFFECT_END, onChangeEnd);
+				resize.play();
+				
+				function onChangeEnd(event:EffectEvent):void
+				{
+					target.height = toHeight;
+					target.width = 180;
+				}
+			}
+			
+			
+			protected function skinnablecontainer1_creationCompleteHandler(event:FlexEvent):void
+			{
+				
+				
+				openToolTip =  "点击打开图例";
+				closeToolTip =  "点击隐藏图例";
+				
+				openDefaultToolTip=  "点击打开图例";
+				closeDefaultToolTip =  "点击隐藏图例";
+				
+				toggleIcon.addEventListener(MouseEvent.CLICK, toggleIcon_clickHandler);
+				// TODO Auto-generated method stub
+			}
+			
+			private function toggleIcon_clickHandler(event:MouseEvent):void
+			{
+				currentState = (currentState == "collapsed") ? "expanded" : "collapsed";
+			}
+			
+			
+			protected function dynamicLegend_resizeHandler(event:ResizeEvent):void
+			{
+				
+				//scroller.numElements
+				/* 	var scroller:Scroller=	dynamicLegend.getElementAt(0)  as  Scroller;
+				if(scroller.numElements<=0)
+				{
+				toggleIcon.visible=false;
+				}
+				else
+				{
+				toggleIcon.visible=true;
+				
+				}
+				*/
+				
+				// TODO Auto-generated method stub
+			}
+			
+		]]>
+	</fx:Script>
+	
+	
+	<s:states>
+		<s:State name="collapsed2"/>
+		<s:State name="expanded2"/>
+		<s:State name="collapsed"/>
+		<s:State name="expanded"/>
+	</s:states>
+	
+	<s:transitions>
+		<s:Transition fromState="*" toState="*">
+			<!--<s:Sequence effectEnd="sequence_effectEndHandler(event)" effectStart="sequence_effectStartHandler(event)">-->
+			<s:Sequence >
+				<s:Resize duration="1000" target="{dyLegend}"/>
+				<s:Rotate angleBy="180"
+						  autoCenterTransform="true"
+						  duration="1000"
+						  target="{toggleIcon}"/>
+			</s:Sequence>
+		</s:Transition>
+	</s:transitions>
+	
+	<!--	<s:transitions>
+	<s:Transition id="trans" 
+	fromState="*" toState="*"
+	>
+	<s:Sequence>
+	<s:Fade duration="500"
+	targets="{[dyLegend, mapLegendImg]}"
+	/>
+	</s:Sequence>
+	</s:Transition>
+	</s:transitions>-->
+	
+	<s:Group id="dyLegend" right="2" bottom="0"  width.collapsed="{toggleIcon.width}" height.collapsed="{toggleIcon.height}"
+			 width="250" height="300"
+			 >
+		<s:BorderContainer id="viewBox"
+						   width="100%"
+						   height="100%"
+						   width.collapsed2="0"
+						   visible.collapsed2="false" 
+						   backgroundAlpha="0.8" 
+						   backgroundColor="{getStyle('contentBackgroundColor')}"
+						   >
+			<s:HGroup left="0" top="0" right="0" height="40"
+					  verticalAlign="middle" paddingLeft="75"
+					  >
+				<s:BorderContainer width="50%" height="20" 
+								   cornerRadius="10" backgroundColor="{getStyle('contentBackgroundColor')}"
+								   >
+					<s:layout>
+						<s:HorizontalLayout horizontalAlign="center" verticalAlign="middle" />
+					</s:layout>
+					<s:Label  id="legendLabel" text="图   例" 
+							  color="{getStyle('color')}"  fontSize="14" fontWeight="bold"
+							  textAlign="center"  verticalAlign="middle" paddingLeft="0"
+							  />
+				</s:BorderContainer>
+			</s:HGroup>
+			<Legend:UF_DynamcLegend id="dynamicLegend"   resize="dynamicLegend_resizeHandler(event)"
+									color="{getStyle('color')}"
+									top="40" bottom="5"  left="10"
+									V_map="{map}"
+									E_legendNumChange="dynamicLegend_numChangeHandler()" 
+									/>
+		</s:BorderContainer>
+		
+		
+		<mx:Image id="toggleIcon"
+				  width="15" height="15"
+				  left="0" top="0"
+				  buttonMode="true"
+				  smoothBitmapContent="true"
+				  source="assets/images/i_expand2.png"
+				  toolTip.collapsed="{openToolTip}"
+				  toolTip.expanded="{closeToolTip}"
+				  useHandCursor="true"
+				  width.collapsed2="0"/>
+		
+		<s:Rect id="vborder"  
+				visible.collapsed2="false" 
+				width.collapsed2="0"
+				left="-1" right="-1" top="-1" bottom="-1">
+			<s:stroke>
+				<s:SolidColorStroke color="{getStyle('rollOverColor')}" weight="1"/>
+			</s:stroke>
+		</s:Rect>
+		
+		<s:Rect id="vborder2" 
+				visible.collapsed2="false" 
+				width.collapsed2="0"
+				left="-5" right="-5" top="-5" bottom="-5">
+			<s:stroke>
+				<s:SolidColorStroke color="{getStyle('contentBackgroundColor')}" weight="2"/> 
+			</s:stroke>
+		</s:Rect>
+	</s:Group>
+	
+	<mx:Image id="mapLegendImg" visible.expanded2="false" bottom="0" right="0" />
+	
+</s:SkinnableContainer>

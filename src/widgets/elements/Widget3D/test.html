@@ -1,0 +1,126 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title>Uniglobe</title>
+
+    <script type="text/javascript"> 
+    function dyniframesize(down)
+    { 
+    	
+		var pTar = null; 
+		if (document.getElementById)
+		{ 
+			pTar = document.getElementById(down[0]); 
+			//alert(down[0]);
+		} 
+		else
+		{ 
+			eval('pTar = ' + down[0] + ';'); 
+		} 
+		if (pTar && !window.opera)
+		{ 
+			//begin resizing iframe 
+			pTar.style.display="block" 
+			alert("huwei");
+			if (pTar.contentDocument && pTar.contentDocument.body.offsetHeight)
+			{ 
+			//ns6 syntax 
+				pTar.height = pTar.contentDocument.body.offsetHeight +20; 
+				pTar.width = pTar.contentDocument.body.scrollWidth+20; 
+			} 
+			else if (pTar.Document && pTar.Document.body.scrollHeight)
+			{ 
+				//ie5+ syntax 
+				pTar.height = pTar.Document.body.scrollHeight; 
+				pTar.width = pTar.Document.body.scrollWidth; 
+			} 
+		} 
+	} 
+    
+    function flyto(arr){
+    //debugger;
+        //alert("nsdjfhsdf");
+        //alert(arr[0]);
+        //alert(arr[1]);
+        var tg3d = document.getElementById("DCQocx1");
+        tg3d.SendCommand("FlyTo,"+arr[0]+","+arr[1], 6);
+        startget3Dattributes();
+    }
+    var name="";
+    function callflex(x,y,nametemp)
+    {
+    	//alert("x值="+x);
+    	//alert("nametemp值="+nametemp);
+    	if(nametemp !=null)
+    	{
+    		name=nametemp;
+    	}
+    	//alert("name值="+name);
+    	//parent.callflex();
+    	//var flash = (navigator.appName.indexOf ("Microsoft") !=-1)?window["HZ2D_3D"]:document["HZ2D_3D"];
+    	//flash.callflex(x,y,nametemp);
+    	return name;
+    }
+    function startget3Dattributes()
+    {
+    	//alert("hwtest");
+    	var tg3d = document.getElementById("DCQocx1");
+		tg3d.SendCommand("SignPosition", 6);
+    }
+    function endGet3Dattributes()
+    {
+    	var tg3d = document.getElementById("DCQocx1");
+		tg3d.SendCommand("", 6);
+    }
+	function Init1(){
+		//DCQocx1.CreateC3DEng();
+		//var d:DCQocx1= new DCQocx1();
+		//DCQocx1.CreateC3DEng;
+		//var tg3D=document.getElementById("DCQocx1");
+		//tg3D.CreateC3DEng();
+		
+		//DCQocx1.CreateC3DEng();
+		alert("huweitest");
+	}
+	function Add3dDb1(){
+		var tg3d=document.getElementById("DCQocx1");
+		tg3d.SendCommand("总体演示",6);
+	}
+	function InQuery1(){
+		var tg3d=document.getElementById("DCQocx1");
+		tg3d.SetSeePositionJW(116.3910,39.8975,116.3910,39.8985,0);
+	}
+    </script>
+    <script language="JavaScript" type="text/javascript" for="DCQocx1" event="OnSendXYN(lon, lat, name)">
+		// 在此添加接收点击选择后返回消息的处理
+		//alert("页面收到数据：经度=" +lon + ",纬度=" + lat + ",名称：" + name); 
+				//window.location.href = "http://yutu-think:8081/display3Dcopy.html?picname=11.jpg";
+				//window.open("http://yutu-think:8081/display3Dcopy.html?picname=11.jpg","face","width=400,height=400,scrollbars=1")
+		callflex(lon,lat,name);
+	</script>
+	<style type="text/css" media="screen"> 
+			html, body	{ height:100%; }
+			body { margin:0; padding:0; overflow:auto; text-align:center; 
+			       background-color: ${bgcolor}; }   
+			#flashContent { display:none; }
+     </style>
+     <script type="text/javascript" src="widgets/elements/Widget3D/3Dshow.js"></script>
+</head>
+<body STYLE="overflow-x: hidden; overflow-y: hidden;">
+    <form id="form1" runat="server">
+    <!--<div>
+        <input type="button" value="sdfsdf" onclick="readytest()" />
+    </div>-->
+    <div>
+    <!--胡伟测试使用style="width: 100%; height: 345px"-->
+        <object id="DCQocx1"  width="100%" height="100%" classid="clsid:7897CD21-8DB6-498D-AE91-CCCE7EDF2A85">
+            <param name="_Version" value="65536" />
+            <param name="_ExtentX" value="17515" />
+            <param name="_ExtentY" value="12091" />
+            <param name="_StockProps" value="0" />
+            <param name="wmode" value="Opaque" />
+        </object>
+    </div>
+    </form>
+</body>
+</html>

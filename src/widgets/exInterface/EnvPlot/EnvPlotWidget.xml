@@ -1,0 +1,6 @@
+<configuration>
+	<titleBar>
+		<drawButton tooltip="绘制标绘图形" url=""/>
+		<managerButton tooltip="管理标绘图形" url=""/>
+	</titleBar>
+</configuration>

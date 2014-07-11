@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget  xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					xmlns:s="library://ns.adobe.com/flex/spark" 
+					xmlns:mx="library://ns.adobe.com/flex/mx" 
+					xmlns:viewer="com.esri.viewer.*"
+					layout="absolute" 
+					widgetConfigLoaded="init()"
+					width="400"
+					height="300"
+					>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.events.DrawEvent;
+			import com.esri.ags.geometry.Extent;
+			import com.esri.ags.geometry.Geometry;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.layers.ArcGISDynamicMapServiceLayer;
+			import com.esri.ags.layers.FeatureLayer;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.layers.Layer;
+			import com.esri.ags.symbols.PictureMarkerSymbol;
+			import com.esri.ags.symbols.Symbol;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			
+			import flash.utils.Timer;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;			
+			
+			[Embed(source="assets/images/i_pin2.png")]
+			private var waitCursor3:Class;
+			private var clickPointLayer:GraphicsLayer=new GraphicsLayer();
+			
+			private function init():void
+			{		
+				if(!configXML)
+				{
+					Alert.show("未找到配置文件。","错误");
+				}else{	
+					if(!map.contains(clickPointLayer))
+						map.addLayer(clickPointLayer);
+					
+					var AddPointMethodJS:String = configXML.AddPointMethod;
+					var clearJS:String = configXML.ClearPointMethod;					
+					ExternalInterface.addCallback(AddPointMethodJS,getClickedCoords);
+					ExternalInterface.addCallback(clearJS,clickedPointClear);
+				}
+				
+//				timer=new Timer(2000,4);
+//				timer.addEventListener(TimerEvent.TIMER,activeEFDC);
+				
+				
+				//test
+//				getClickedCoords();
+			}
+			
+			private var callbackParam:Array = [];
+			
+			
+			//js调用后，当在地图上单击时，在单击点画一个标记，并将此点坐标返回给JS
+			private function getClickedCoords(param:Array):void
+			{
+				callbackParam = param;
+				
+//				Alert.show("可以选择点了...");
+				//cursorManager.currentCursorID=0;
+				cursorManager.removeCursor(cursorManager.currentCursorID);
+				cursorManager.setCursor(waitCursor3);
+				
+				clickPointLayer.clear();
+				setMapActions("mappoint", "绘制点", null, map_drawEndHandler);			
+			}
+			
+			private function setMapActions(action:String, status:String, symbol:Symbol, callback:Function):void
+			{
+				var data:Object =
+					{
+						lable: "test",
+						tool: action,
+						status: status,
+						symbol: symbol,
+						handler: callback
+					}					
+				ViewerContainer.dispatchEvent(new AppEvent(AppEvent.SET_MAP_ACTION, data));
+			}
+			
+			private function map_drawEndHandler(event:DrawEvent):void
+			{
+				event.target.deactivate();
+				var geom:Geometry = event.graphic.geometry;
+				var tempPt:MapPoint = geom as MapPoint;
+				var tempGraphic:Graphic = new Graphic();
+				tempGraphic.geometry = tempPt;
+				tempGraphic.symbol = new PictureMarkerSymbol("assets/images/i_pin2.png", 32,32, 0, 0);
+				clickPointLayer.add(tempGraphic);		
+	
+				var funcNameJS:String=configXML.GetCoordinateMethod;	
+						
+				ExternalInterface.call(funcNameJS,tempPt.x,tempPt.y, callbackParam);
+				
+				cursorManager.removeCursor(cursorManager.currentCursorID);
+				
+				setTimeout(clickedPointClear,3000);
+			}
+			
+			private function clickedPointClear():void
+			{
+				clickPointLayer.clear();
+			}
+			
+		]]>
+	</fx:Script>
+</viewer:BaseWidget>

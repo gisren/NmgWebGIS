@@ -1,0 +1,543 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:viewer="com.esri.viewer.*"
+				   widgetConfigLoaded="configLoad()"
+				   >
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.events.ExtentEvent;
+			import com.esri.ags.events.PanEvent;
+			import com.esri.ags.events.ZoomEvent;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.symbols.PictureMarkerSymbol;
+			import com.esri.ags.symbols.TextSymbol;
+			import com.esri.ags.utils.JSON;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			import com.google.flexiframe.IFrame;
+			import com.mapUni.BaseClass.MapUni;
+			
+			import flash.utils.setTimeout;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			import mx.events.MoveEvent;
+			
+			
+			/**
+			 * 多点图层  
+			 */
+//			private var pointListGraphicLayer:GraphicsLayer = new GraphicsLayer();
+
+			
+			private var pointListGraphicLayer:GraphicsLayer;
+			
+			
+			/**
+			 * 完成读取配置文件
+			 */
+			private function configLoad():void
+			{
+				ViewerContainer.addEventListener(AppEvent.CLEAR_MAP, onClearMap);
+				
+//				pointListGraphicLayer.name = "point";
+//				
+//				map.addLayer(pointListGraphicLayer);
+				
+				pointListGraphicLayer=map.getLayer("point") as GraphicsLayer;
+				
+				if(configXML)
+				{
+					var exAddPointListName:String = configXML.externalInterface.exAddPointList;
+					var exAddPointListStrName:String = configXML.externalInterface.exAddPointListStr;
+					var exClearPointName:String = configXML.externalInterface.exClearPoint;
+					
+					ExternalInterface.addCallback(exAddPointListName, addPoint);
+					ExternalInterface.addCallback(exAddPointListStrName, addPointStr);
+					ExternalInterface.addCallback(exClearPointName, ClearMapPoint);
+					
+					//test();
+				}
+			}
+			
+			
+			
+			private function test():void
+			{
+				var pointData:Array = [
+					{
+						locate: {X:123.607898,  Y:44.282850 },
+						picture: {enable:true,  url:"assets/yutuImages/exImage/city.png",  width:20,  height:20,  xoffset:0,   yoffset:0,   angle:0 },
+						popUpWindow:{enable:true,title:"污染源",content:"a:sdf\nb:asdf", autoShow:true, link:[{label:"百度", callback:"popUpWindowLink", parameter:["asdfdd"]},{label:"谷歌", callback:"popUpWindowLink", parameter:["asdfdd"]},{label:"搜狗", callback:"popUpWindowLink", parameter:["asdfdd"]},{label:"宇图", callback:"popUpWindowLink", parameter:["asdfdd"]},{label:"高德", callback:"popUpWindowLink", parameter:["asdfdd"]}]},
+						textSymbol:{enable:true, text:"污染源", borderColor:0x0000ff, backgroundColor:0xffffff, angle:0, xoffset:0, yoffset:20, textFormate:{size:18, color:0xff0000, bold:false, underline:true}},
+						iframeWindow:{ enable:false,  url:"",  width:0,  height:0},
+						clickCallback:{ enable:true,  funcName:"",  parameter:null},
+						toolTip:{enable:true, text:"这是污染源企业"}
+					}/* ,
+					 {
+						locate: {X:119.2346928545,  Y:31.12334453454523 },
+						picture: {enable:true,  url:"assets/yutuImages/mapIcon/电厂40.png",  width:20,  height:20,  xoffset:0,   yoffset:0,   angle:0 },
+						textSymbol:{enable:true, text:"电厂", color:0xff0000, borderColor:0x0000ff, backgroundColor:0xffffff, angle:0, xoffset:0, yoffset:20, textFormate:{size:13, color:0x000000, bold:false, underline:false}},
+						popUpWindow:{enable:true,title:"电厂",content:"阿萨德飞：阿萨德飞\nasdf:阿萨德飞 "},
+						iframeWindow:{ enable:false},
+						clickCallback:{ enable:false}
+					}, 
+					{
+						locate: {X:120.27187311033644,  Y:32.606872671205885 },//{X:120.27187311033644,  Y:32.606872671205885 },
+						picture: {enable:true,  url:"assets/yutuImages/mapIcon/机动车40.png",  width:20,  height:20 },
+						popUpWindow:{enable:false,title:"机动车"},
+						iframeWindow:{ enable:true,  url:"http://yutu636/krpanoV1.07/buttons.html",  width:200,  height:100},
+						clickCallback:{ enable:true,  funcName:"mapPointClickCallback",  parameter:["asd",2]}
+					} */
+				];
+				
+				var stri:String = JSON.encode(pointData);
+				
+				
+				/**
+				 * 添加点的方法测试 
+				 */
+				setTimeout(addPoint, 5000, pointData);
+				
+				/**
+				 * 清除点的方法测试 
+				 */
+//				setTimeout(ClearMapPoint, 10000);
+			}
+			
+			
+			private function onClearMap(event:AppEvent):void
+			{
+				pointListGraphicLayer.clear();
+			}
+			
+			private function addPointStr(value:String):void
+			{
+				var valueData:Array = null;
+				try
+				{
+					valueData = JSON.decode(value);
+				}
+				catch(e:Error)
+				{
+					MapUni.errorWindow("数据格式有误\n" + e.toString());
+				}
+				
+				if(valueData)
+				{
+					addPoint(valueData);
+				}
+			}
+			
+			
+			/**
+			 * 添加点 
+			 */
+			private function addPoint(pointAry:Array):void
+			{
+				if(pointAry != null)
+				{
+					var pointColl:ArrayCollection = new ArrayCollection();
+					var textAC:ArrayCollection = new ArrayCollection();
+					
+					for(var i:int=0; i<pointAry.length; i++)
+					{
+						var pointObj:Object = pointAry[i];
+						
+						var locate:Object = pointObj["locate"];
+						var picture:Object = pointObj["picture"];
+						var textSymbol:Object = pointObj["textSymbol"];
+						
+						var pointGraphic:Graphic = pointGraphic(locate, picture, pointObj);
+//						var textGraphic:Graphic = textGraphic(locate, textSymbol);
+						
+						if(!pointGraphic)
+						{
+							continue;
+						}
+						
+						//文本符号避让
+						/* if(textGraphic)
+						{
+							var textPoint:MapPoint = textGraphic.geometry as MapPoint;
+							var tSymbol:TextSymbol = textGraphic.symbol as TextSymbol;
+							
+							if(textAC.length !=0)
+							{
+								var num:int =0;
+								for each(var ob:Object in textAC)
+								{
+									if(ob.x == textPoint.x && ob.y == textPoint.y)
+									{
+										tSymbol.yoffset -= 40;
+										num ++;
+									}
+								}
+							}
+							var obj:Object = {x:textPoint.x, y:textPoint.y};
+							textAC.addItem(obj);
+						} */
+						
+						//鼠标提示信息
+						addTooltip(pointGraphic, pointObj);
+						
+						pointGraphic.addEventListener(MouseEvent.CLICK, onPointClick);
+						
+						pointListGraphicLayer.add(pointGraphic);
+						
+						/* if(textGraphic)
+						{
+							pointListGraphicLayer.add(textGraphic);
+						} */
+						
+						pointColl.addItem(pointGraphic);
+						
+						//是否要自动弹出详细信息窗口
+						autoShowInfoWindow(pointGraphic);
+					}
+					
+					MapUni.dataExtent(pointColl, map); 
+				}
+				else
+				{
+					Alert.show("没有查询到数据！","提示");
+					//MapUni.errorWindow("没有查询到数据！" );
+				}
+			}
+			
+			
+			private function textGraphic(locateObj:Object, textSymbolObj:Object):Graphic
+			{
+				if(!locateObj || !textSymbolObj)
+				{
+					return null;	
+				}
+				
+				var x:Number = locateObj["X"];
+				var y:Number = locateObj["Y"];
+				
+				var symbolEnable:Boolean = textSymbolObj["enable"];
+				var symbolText:String = textSymbolObj["text"];
+				var symbolColor:Number = textSymbolObj["color"];
+				var symbolBorderColor:Number = textSymbolObj["borderColor"];
+				var symbolBackgroundColor:Number = textSymbolObj["backgroundColor"];
+				var symbolAngle:Number = textSymbolObj["angle"];
+				var symbolXoffset:Number = textSymbolObj["xoffset"];
+				var symbolYoffset:Number = textSymbolObj["yoffset"];
+				
+				var textformate:TextFormat = new TextFormat();
+				var textFormateObj:Object = textSymbolObj["textFormate"];
+				if(textFormateObj)
+				{
+					var tFormateSize:Number = textFormateObj["size"];
+					var tFormateColor:Number = textFormateObj["color"];
+					var tFormateBold:Boolean = textFormateObj["bold"];
+					var tFormateUnderline:Boolean = textFormateObj["underline"];
+					
+					if(tFormateSize)
+					{
+						textformate.size = tFormateSize;
+					}
+					if(tFormateColor)
+					{
+						textformate.color = tFormateColor;
+					}
+					if(tFormateBold)
+					{
+						textformate.bold = tFormateBold;
+					}
+					if(tFormateUnderline)
+					{
+						textformate.underline = tFormateUnderline;
+					}
+				}
+				
+				var textGraphic:Graphic = new Graphic();
+				
+				if( x && y)
+				{
+					if(symbolEnable && symbolText)
+					{
+						var textSymbol:TextSymbol = new TextSymbol(symbolText);
+						
+						if(symbolColor)
+						{
+							textSymbol.color = symbolColor;
+						}
+						if(symbolBorderColor)
+						{
+							textSymbol.border = true;
+							textSymbol.borderColor = symbolBorderColor;
+						}
+						if(symbolBackgroundColor)
+						{
+							textSymbol.background = true;
+							textSymbol.backgroundColor = symbolBackgroundColor;
+						}
+						if(symbolAngle)
+						{
+							textSymbol.angle = symbolAngle
+						}
+						if(symbolXoffset)
+						{
+							textSymbol.xoffset = symbolXoffset;
+						}
+						if(symbolYoffset)
+						{
+							textSymbol.yoffset = symbolYoffset;
+						}
+						if(textformate)
+						{
+							textSymbol.textFormat = textformate;
+						}
+						
+						textGraphic.geometry = new MapPoint(x, y);
+						textGraphic.symbol = textSymbol;
+					}
+				}
+				
+				return textGraphic;
+			}
+			
+			
+			
+			/**
+			 * 点添加鼠标提示信息 
+			*/
+			private function addTooltip(pointGra:Graphic, pointObj:Object):void
+			{
+				var toolTipObj:Object = pointObj["toolTip"];
+				
+				if(toolTipObj)
+				{
+					if(toolTipObj["enable"] && toolTipObj["enable"]!="false")
+					{
+						var text:String = toolTipObj["text"];
+						
+						pointGra.toolTip = text;
+					}
+				}
+			}
+			
+			
+			/**
+			 * 判断是否要自动弹出详细信息窗口 
+			*/
+			private function autoShowInfoWindow(pointGra:Graphic):void
+			{
+				var pointObj:Object = pointGra.attributes;
+				
+				if(pointObj["popUpWindow"]["autoShow"] || pointObj["popUpWindow"]["autoShow"] == "true" ||
+							pointObj["iframeWindow"]["autoShow"] || pointObj["iframeWindow"]["autoShow"] == "true")
+				{
+					showInfowindow(pointGra);
+				}
+			}
+			
+			
+			/**
+			 * 鼠标单击
+			 * 弹出详细信息
+			 * 派发事件
+			 */
+			private function onPointClick(event:MouseEvent):void
+			{
+				var pointGra:Graphic = event.currentTarget as Graphic;
+				
+				var pointObj:Object = pointGra.attributes;
+				
+				
+				//弹出详细信息框
+				showInfowindow(pointGra);
+				
+				
+				/* 
+				 派发鼠标点击事件
+				*/
+				var callback:Object = pointObj["clickCallback"];
+				
+				if(callback)
+				{
+					if(callback["enable"] != "false" && callback["enable"])
+					{
+						clickCallback(callback);
+					}
+				} 
+			}
+			
+			
+			/**
+			 * 分析参数
+			 * 执行弹出详细信息窗口 
+			*/
+			private function showInfowindow(pointGra:Graphic):void
+			{
+				var pointObj:Object = pointGra.attributes;
+				
+				var popUpWindow:Object = pointObj["popUpWindow"];
+				var infoWindow:Object = pointObj["iframeWindow"];
+				
+				if(infoWindow)
+				{
+					if(infoWindow["enable"] != "false" && infoWindow["enable"])
+					{
+						createIfram(infoWindow, pointGra);
+					}
+					else
+					{
+						if(popUpWindow)
+						{
+							if(popUpWindow["enable"] != "false" && popUpWindow["enable"])
+							{
+								createPopUpWindow(popUpWindow, pointGra);
+							}
+						}
+					}
+				}
+				else if(popUpWindow)
+				{
+					if(popUpWindow["enable"] != "false" && popUpWindow["enable"])
+					{
+						createPopUpWindow(popUpWindow, pointGra);
+					}
+				}
+				
+			}
+			
+			
+			/**
+			 * 回调js方法 
+			 */
+			private function clickCallback(callbackObj:Object):void
+			{
+				var funcName:String = callbackObj["funcName"];
+				var param:Array = callbackObj["parameter"] as Array;
+				
+				if(funcName)
+				{
+					ExternalInterface.call(funcName, param);
+				}
+			}
+			
+			
+			/**
+			 * 显示系统自带的弹出窗口 
+			 */
+			private function createPopUpWindow(popUpWindow:Object, pointGra:Graphic):void
+			{
+				var popTitle:String = popUpWindow["title"];
+				var popContent:String = popUpWindow["content"];
+				var linkArray:Array = popUpWindow["link"];
+				
+				var infoWindowCom:infoWindowContent = new infoWindowContent();
+				infoWindowCom.title = popTitle;
+				infoWindowCom.content = popContent;
+				infoWindowCom.linkArray = linkArray;
+				
+				var mapPoint:MapPoint = pointGra.geometry as MapPoint;
+				
+				map.infoWindow.closeButtonVisible=true;
+				map.infoWindow.content = infoWindowCom;
+				map.infoWindow.show(mapPoint);
+				
+			}
+			
+			
+			/**
+			 * 显示嵌入外部页面的气泡 
+			 */
+			private function createIfram(windowObj:Object, pointGra:Graphic):void
+			{
+				var pageUrl:String = windowObj["url"];
+				var pageWidth:Number = windowObj["width"];
+				var pageHeight:Number = windowObj["height"];
+				
+				var ifram:IFrame = new IFrame();
+				ifram.source = pageUrl;
+				ifram.height = pageHeight;
+				ifram.width = pageWidth;
+				
+				map.infoWindow.content = ifram;
+				map.infoWindow.show(pointGra.geometry as MapPoint);
+				
+				map.addEventListener(PanEvent.PAN_UPDATE, onMove);
+				map.addEventListener(ExtentEvent.EXTENT_CHANGE, onMove);
+				map.infoWindow.addEventListener(Event.CLOSE, onClose);
+				
+				function onMove(event:Event):void
+				{
+					ifram.invalidateDisplayList();
+				}
+				
+				function onClose(event:Event):void
+				{
+					ifram.visible = false;
+				}
+			}
+			
+			
+			/**
+			 * 创建点 
+			 */
+			private function pointGraphic(locateData:Object, picData:Object, attriData:Object):Graphic
+			{
+				var x:Number = locateData["X"];
+				var y:Number = locateData["Y"];
+				
+				var picUrl:String = picData["url"];
+				var picWidth:Number = picData["width"];
+				var picHeight:Number = picData["height"];
+				var picXoffset:Number = picData["xoffset"];
+				var picYoffset:Number = picData["yoffset"];
+				var picAngle:Number = picData["angle"];
+				
+				var pointGraphic:Graphic;
+				
+				if( x && y)
+				{
+					if(picData["enable"] == "false" || picData["enable"])
+					{
+						pointGraphic = MapUni.pointGraphic(x, y, picUrl, attriData, 
+							picWidth, picHeight, picXoffset, picYoffset, picAngle);
+					}
+					else
+					{
+						pointGraphic = MapUni.pointGraphic(x, y, null, attriData);
+					}
+				}
+				
+				return pointGraphic;
+			}
+			
+			
+			/**
+			 * 清除地图点图层 
+			 */
+			private function ClearMapPoint():void
+			{
+				pointListGraphicLayer.clear();
+			}
+			
+			
+		]]>
+	</fx:Script>
+	
+</viewer:BaseWidget>
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			   xmlns:s="library://ns.adobe.com/flex/spark" 
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+			   xmlns:supportClasses="com.esri.ags.skins.supportClasses.*" 
+			 
+			   creationComplete="init()" xmlns:esri="http://www.esri.com/2008/ags"
+			   >
+	<s:layout>
+		<supportClasses:AttachmentLayout/>
+	</s:layout>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.layers.ArcGISDynamicMapServiceLayer;
+			import com.esri.ags.layers.ArcGISTiledMapServiceLayer;
+			import com.esri.ags.virtualearth.VETiledLayer;
+			
+			import mx.rpc.xml.SimpleXMLDecoder;
+			public function init():void
+			{ 
+			    ExternalInterface.addCallback("mapInit",mapInit);
+			    ExternalInterface.addCallback("OverMapPoint",OverMapPoint);
+				mapInit("12");
+		    }
+			
+			public function mapInit(strxml:String):void
+			{
+				strxml=strxml.replace(new RegExp("[$]", "g"),"\n");
+				strxml="<root>\n  " +
+					"<item>\n    " +
+					"<mapType>tiled</mapType>\n    " +
+					" <url>http://218.60.147.63/ArcGIS/rest/services/LNMap/MapServer</url>\n    " +
+					" </item>\n  </root>";
+				var mapservice:Object=getObj(strxml); 
+				if(mapservice.itemcount==0)
+				{
+					return;
+				}
+				
+				
+				var type:String=mapservice.root.item.mapType;
+				var url:String=mapservice.root.item.url;
+				var label:String="鹰眼";
+				var style:String="road";
+				var visible:String="true"; 
+				MapaddLayer(type,url,label,style,visible,MyMap);
+			}
+			
+		  public function MapaddLayer(type:String,url:String,label:String,style:String,visible:String,mymap:Map):void
+			
+		   {  
+				switch (type)     
+				{
+					
+					case "tiled":  //静态--地图选择全部显示
+					{
+						var tiledlayer:ArcGISTiledMapServiceLayer = new ArcGISTiledMapServiceLayer(url);
+						tiledlayer.alpha = alpha;
+						tiledlayer.name=label;
+						if(visible!="true")
+						{
+							tiledlayer.visible=false;
+						}
+						mymap.addLayer(tiledlayer);
+						break;
+					} 
+					case "dynamic": 
+					case "live":    
+					{
+						var dynlayer:ArcGISDynamicMapServiceLayer = new ArcGISDynamicMapServiceLayer(url);
+						dynlayer.alpha = alpha;
+						dynlayer.name=label;
+						if(visible!="true")
+						{
+							dynlayer.visible=false;
+						}
+						mymap.addLayer(dynlayer);
+						break;
+					}
+					 
+				} 
+			}
+			
+			private function OverMapPoint(x,y,level):void
+			{
+				
+				var centerpoint:MapPoint = new MapPoint(x,y,MyMap.spatialReference);
+				MyMap.centerAt(centerpoint);
+				if(level!=0)
+				{
+					MyMap.level=level;
+				}
+			} 
+			public function getObj(strxml:String):Object
+			{
+				var xmlDoc:XMLDocument = new XMLDocument(strxml); 
+				var rootnode:XMLNode=xmlDoc.childNodes[0];
+				var count:uint=rootnode.childNodes.length;
+				
+				var decoder:SimpleXMLDecoder = new SimpleXMLDecoder(true);
+				var resultObj:Object = decoder.decodeXML(xmlDoc);
+				resultObj.itemcount=count;
+				return resultObj;
+			}
+		]]>
+	</fx:Script>
+ <esri:Map id="MyMap"
+				  width						="100%"
+				  x                            ="0"
+				  y                            ="0"
+				  height						="100%"
+				  panArrowsVisible			    ="false" 
+				  zoomSliderVisible			="true" 
+				  logoVisible					="false" 
+				  scaleBarVisible				="true" 
+				  panEnabled					="true"
+				  clickRecenterEnabled		    ="false"
+				  doubleClickZoomEnabled		="false"
+				  keyboardNavigationEnabled	="false"
+				  rubberbandZoomEnabled		="false"
+				  scrollWheelZoomEnabled		="true" 
+				  mapNavigationEnabled         ="true" 
+				  >
+			
+		</esri:Map>
+	 
+</s:Application>

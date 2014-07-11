@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 xmlns:plotapi="com.esrichina.demo.plotapi.*"
+		 creationComplete="init()"
+		 xmlns:EnvPlotApi="widgets.EnvPlotApi.*"
+		  width="222" height="202">
+	
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.symbols.SimpleFillSymbol;
+			import com.esri.ags.symbols.TextSymbol;
+			import com.esri.viewer.ViewerContainer;
+			import com.esrichina.dynamicplot.symbols.GradientColorFillSymbol;
+			
+			import mx.collections.ArrayCollection;
+			
+			import widgets.exInterface.EnvPlot.PlotEvent;
+			
+			
+			
+			private function init():void
+			{
+//				ViewerContainer.addEventListener(PlotEvent.TEXT_SELECTED, textSelectHandler);
+				
+				changeHandler();
+			}
+			
+			
+			/**
+			 * 改变样式后派发
+			 */
+			private function changeHandler(event:Event=null):void
+			{
+				var textParam:Object = 
+					{
+						bold:bold.selected,
+						italic:italic.selected,
+						underline:underline.selected,
+						font:textFont.selectedItem.font,
+						color:cpText.selectedColor,
+						Size:numTextSize.value,
+						useBack:useBack.selected,
+						colorBG:cpbackground.selectedColor,
+						alphaBG:numAlphaBG.value,
+						useBorder:useBack.selected,
+						colorBorder:cpbackBorder.selectedColor
+					};
+				
+				ViewerContainer.dispatchEvent(new PlotEvent(PlotEvent.TEXT_SYMBOL_CHANGE, textParam)); 
+			}
+			
+			
+			/**
+			 * 获取组件默认值 
+			*/
+			private function getDefaultString(resourceName:String):String
+			{
+				return resourceManager.getString("ViewerStrings", resourceName);
+			}
+			
+			
+			/**
+			 * 显示已选择的标绘的样式
+			 */
+			/* private function textSelectHandler(event:PlotEvent):void
+			{
+				var textPoint:Graphic = event.data as Graphic;
+				if(textPoint.symbol is TextSymbol)
+				{
+					var tsl:TextSymbol = textPoint.symbol as TextSymbol;
+					var textFormat:TextFormat = tsl.textFormat;
+					
+					bold.selected = textFormat.bold;
+					italic.selected = textFormat.italic;
+					underline.selected = textFormat.underline;
+//					textFont.selectedIndex = textFormat.font
+					cpText.selectedColor = textFormat.color as uint;
+					numTextSize.value = textFormat.size as Number;
+				}
+			}  */
+			
+		]]>
+	</fx:Script>
+	
+	
+	<mx:VBox width="100%" height="100%" 
+			 >
+		<mx:Form id="frmDraw"
+				 width="100%" height="193"
+				 paddingBottom="0"
+				 verticalGap="8"
+				 verticalScrollPolicy="off"
+				 >
+			<mx:FormItem id="txtAttribs"
+						 width="100%"
+						 label="样式"
+						 >
+				<s:HGroup width="100%" verticalAlign="middle">
+					
+					<s:ToggleButton id="bold" width="32"
+									fontWeight="bold"
+									label="B" toolTip="粗体"
+									change="changeHandler()"									
+									/>
+					<s:ToggleButton id="italic" width="32"
+									fontStyle="italic" fontWeight="bold"
+									label="I" toolTip="斜体"
+									change="changeHandler()"	
+									/>
+					<s:ToggleButton id="underline" width="32"
+									fontWeight="bold" textDecoration="underline"
+									label="U" toolTip="下划线"
+									change="changeHandler()"	
+									/>
+				</s:HGroup>
+			</mx:FormItem>
+			<mx:FormItem id="txtFont"
+						 width="100%"
+						 label="字体"
+						 >
+				<s:DropDownList id="textFont"
+								labelField="name"
+								selectedIndex="0"
+								change="changeHandler()"	
+								>
+					<s:ArrayList>
+						<fx:Object name="{getDefaultString('textFont1')}" font="{getDefaultString('textFont1')}"/>
+						<fx:Object name="{getDefaultString('textFont2')}" font="{getDefaultString('textFont2')}"/>
+						<fx:Object name="{getDefaultString('textFont3')}" font="{getDefaultString('textFont3')}"/>
+						<fx:Object name="{getDefaultString('textFont4')}" font="{getDefaultString('textFont4')}"/>
+						<fx:Object name="{getDefaultString('textFont5')}" font="{getDefaultString('textFont5')}"/>
+						<fx:Object name="{getDefaultString('textFont6')}" font="{getDefaultString('textFont6')}"/>
+					</s:ArrayList>
+				</s:DropDownList>
+			</mx:FormItem>
+			<mx:FormItem id="textColorSize"
+						 width="100%"
+						 label="颜色"
+						 >
+				<s:HGroup width="100%"
+						  gap="4"
+						  verticalAlign="middle">
+					<mx:ColorPicker id="cpText" selectedColor="0xFF0000" change="changeHandler()"/>
+					<mx:Label text=" 大小"/>
+					<mx:NumericStepper id="numTextSize"
+									   maximum="100" minimum="0"
+									   value="20"
+									   change="changeHandler()"
+									   />
+				</s:HGroup>
+			</mx:FormItem>
+			<s:HGroup width="100%">
+				<s:CheckBox id="useBack" label="使用背景" change="changeHandler()" />
+			</s:HGroup>
+			<mx:FormItem id="textbackColorSize"
+						 width="100%"
+						 label="底部"
+						 visible="{useBack.selected}"
+						 >
+				<s:HGroup width="100%"
+						  gap="4"
+						  verticalAlign="middle">
+					<mx:ColorPicker id="cpbackground" selectedColor="0xCCCCCC" change="changeHandler()"/>
+					<mx:Label text=" 透明度"/>
+					<mx:NumericStepper id="numAlphaBG"
+									   maximum="1" minimum="0" stepSize="0.1"
+									   value="0.8"
+									   change="changeHandler()"
+									   />
+				</s:HGroup>
+			</mx:FormItem>
+			<mx:FormItem id="textborColor"
+						 width="100%"
+						 label="边框"
+						 visible="{useBack.selected}"
+						 >
+					<mx:ColorPicker id="cpbackBorder" selectedColor="0x333333" change="changeHandler()"/>
+			</mx:FormItem>
+		</mx:Form>
+	</mx:VBox>
+	
+</s:Group>

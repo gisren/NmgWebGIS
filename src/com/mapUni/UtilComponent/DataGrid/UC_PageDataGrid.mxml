@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+//	Copyright (c) 2012 中科宇图天下科技有限公司 环保事业部
+//
+//	DataGrid 数据分页显示
+//
+//  Author：liuXL
+//  Date：2012-01-16
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 >
+	
+	<fx:Metadata>
+		[Event(name="PGItemClick",type="flash.events.Event")]
+		[Event(name="PGDataChange",type="flash.events.Event")]
+	</fx:Metadata>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.events.ListEvent;
+			
+			
+			[Bindable]
+			/**
+			 * DataGrid每页显示的行数
+			*/
+			public var pageSize:int=13;		//每页显示行数
+			
+			[Bindable]
+			private var totalPage:int=0;		//总页数
+			
+			[Bindable]
+			private var currentPage:int=0;		//当前页
+			
+			[Bindable]
+			public var endShowData:ArrayCollection = new ArrayCollection();		//最后要显示的数据
+			
+			private var acPageData:ArrayCollection=new ArrayCollection();			//当前页数据
+			
+			[Bindable]
+			private var acAllData:ArrayCollection = new ArrayCollection();			//所有数据
+			
+			private var _isUsedPageNation:Boolean = true;
+			
+			public var selectedItem:Object = new Object();
+			
+			
+			/**
+			 * 设置数据源 
+			*/
+			public function set PGDataProvider(value:ArrayCollection):void
+			{
+				acAllData.removeAll();
+				
+				acAllData = value;
+				
+				setDataShowType();
+			}
+			public function get PGDataProvider():ArrayCollection
+			{
+				return acAllData;
+			}
+			
+			
+			/**
+			 * 是否使用分页显示 
+			*/
+			public function set isUsedPageNation(value:Boolean):void
+			{
+				_isUsedPageNation = value;
+				
+				setDataShowType();
+			}
+			public function get isUsedPageNation():Boolean
+			{
+				return _isUsedPageNation;
+			}
+			
+			
+			/**
+			 * 设置数据的显示形式 
+			*/
+			private function setDataShowType():void
+			{
+				if(_isUsedPageNation)
+				{
+					pageControl.includeInLayout = true;
+					pageControl.visible = true;
+					pageGridInit();
+				}
+				else
+				{
+					pageControl.includeInLayout = false;
+					pageControl.visible = false;
+					
+					endShowData = acAllData;
+					
+					showPageData();
+				}
+			}
+				
+			
+			
+			private function pageGridInit():void
+			{
+				if(acAllData.length!=0 && acAllData!=null)
+				{
+					totalPage=Math.ceil(acAllData.length/pageSize);
+					loadData(0);
+				}else{
+					currentPage=0;
+					totalPage=0;
+				}
+			}
+			
+			//加载数据
+			private function loadData(pageNum:int):void
+			{
+				if(pageNum>=0 && pageNum<totalPage)
+				{
+					acPageData.removeAll();
+					currentPage=pageNum;//重新为当前页的变量赋值
+					var startIndex:int=pageNum*pageSize;//计算起始索引
+					for(var i:int=0;i<pageSize && startIndex<acAllData.length;i++)
+					{
+						acPageData.addItem(acAllData[startIndex]);
+						startIndex++;
+					}
+					
+					endShowData = acPageData;
+				}
+				if(currentPage!=0){
+					lbtnPrevious.source = "assets/images/yutu/page-prev.gif";
+					lbtnFirst.source="assets/images/yutu/page-first.gif";
+				}
+				else{
+					lbtnPrevious.source = "assets/images/yutu/page-prev-disabled.gif";
+					lbtnFirst.source="assets/images/yutu/page-first-disabled.gif";
+				}
+				
+				if(totalPage>currentPage+1){
+					lbtnLast.source = "assets/images/yutu/page-last.gif";
+					lbtnNext.source = "assets/images/yutu/page-next.gif";
+				}
+				else{
+					lbtnLast.source = "assets/images/yutu/page-last-disabled.gif";
+					lbtnNext.source = "assets/images/yutu/page-next-disabled.gif";
+				}
+				
+				showPageData();
+			}
+			
+			
+			private function showPageData():void
+			{
+				this.dispatchEvent(new Event("PGDataChange"));
+			}
+			
+			
+			private function DataGridItemClick(event:ListEvent):void
+			{
+				selectedItem = event.itemRenderer.data as Object;
+				
+				this.dispatchEvent(new Event("PGItemClick")); 
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<mx:VBox width="100%" verticalGap="0" horizontalAlign="center">
+		<mx:DataGrid id="dataGrid" width="100%"  editable="false" dataProvider="{endShowData}" rowCount="13"  itemClick="DataGridItemClick(event)" alpha="0.6">
+			<mx:columns>
+				<mx:DataGridColumn headerText="污染源名称" dataField="NAME" width="300" sortable="false"/>
+			</mx:columns>
+		</mx:DataGrid>	
+		<mx:HBox id="pageControl" includeInLayout="true" visible="true" cornerRadius="0" borderStyle="solid" horizontalAlign="center" verticalAlign="middle" width="100%">
+			<mx:Text text="{'第'+(totalPage>0?(currentPage+1):0)+'页/共'+totalPage+'页'+'  共'+(acAllData!=null?acAllData.length:0)+'条'}" fontSize="12" color="black"/>    
+			<mx:Image id="lbtnFirst" toolTip="首页" source="assets/images/yutu/page-first.gif" click="loadData(0)" enabled="{lbtnPrevious.enabled}" width="16" height="16" buttonMode="true"/>
+			<mx:Image id="lbtnPrevious" toolTip="上一页" source="assets/images/yutu/page-prev.gif" click="loadData(currentPage-1)" enabled="{currentPage!=0?true:false}" width="16" height="16" buttonMode="true"/>
+			<mx:Image id="lbtnNext" toolTip="下一页" source="assets/images/yutu/page-next.gif" click="loadData(currentPage+1)" enabled="{totalPage>(currentPage+1)?true:false}" width="16" height="16" buttonMode="true"/>
+			<mx:Image id="lbtnLast" toolTip="尾页" source="assets/images/yutu/page-last.gif" click="loadData(totalPage-1)" enabled="{lbtnNext.enabled}" width="16" height="16" buttonMode="true"/>
+			<mx:NumericStepper id="nsPageNum" stepSize="1" minimum="1" maximum="{totalPage}" enabled="{lbtnJump.enabled}" cornerRadius="0"/>
+			<mx:Image id="lbtnJump" toolTip="跳转" source="assets/images/yutu/page_goto.gif" click="loadData(nsPageNum.value-1)" enabled="{totalPage>1?true:false}" buttonMode="true"/>
+		</mx:HBox>
+	</mx:VBox>
+	
+</s:Group>

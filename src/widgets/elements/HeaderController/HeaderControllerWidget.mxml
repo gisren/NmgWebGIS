@@ -1,0 +1,404 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+                   xmlns:s="library://ns.adobe.com/flex/spark"
+                   xmlns:mx="library://ns.adobe.com/flex/mx"
+                   xmlns:viewer="com.esri.viewer.*"
+                   borderSkin="{null}"
+                   creationComplete="creationCompleteHandler(event)"
+                   widgetConfigLoaded="configLoad()" xmlns:HeaderController="widgets.elements.HeaderController.*">
+    <fx:Script>
+        <![CDATA[
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.layers.Layer;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			import com.esri.viewer.WidgetStates;
+			import com.esri.viewer.components.HTMLPopup;
+			import com.esri.viewer.managers.MapManager;
+			import com.mapUni.BaseClass.MapUni;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			import mx.managers.CursorManager;
+			
+			import spark.components.supportClasses.ItemRenderer;
+
+
+            [Bindable]
+            private var widgetItemAC:ArrayCollection;
+            [Bindable]
+            private var groupWidgetAC:ArrayCollection;
+			
+			[Bindable] 
+			[Embed(source='assets/yutuImages/toolBar/fullScreen.png')]    
+			private var fullscreenIcon:Class; 	
+			
+			
+			[Embed(source='assets/yutuImages/toolBar/normalScreen.png')]    
+			private var normalIcon:Class; 
+			
+
+            private function creationCompleteHandler(event:FlexEvent):void
+            {
+                if (configData)
+                {
+                    widgetItemAC = getWidgetItems(configData.widgets);
+                    ViewerContainer.addEventListener(AppEvent.WIDGET_STATE_CHANGED, widgetStateChangedHandler);
+                }
+            }
+
+            private function configLoad():void
+            {
+                if (configXML)
+                {
+//					var a:f
+                }
+            }
+
+            private function getWidgetItems(widgetList:Array):ArrayCollection
+            {
+                var menuItems:ArrayCollection = new ArrayCollection;
+                var widgetItem:WidgetItem;
+                for (var i:int = 0; i < widgetList.length; )
+                {
+                    if (widgetList[i].grouped)
+                    {
+                        // grouped 
+                        var widgetArray:Array = [];
+                        var length:Number = widgetList[i].groupLength;
+                        for (var k:int = 0; k < length; k++)
+                        {
+                            widgetArray.push({ widget: widgetList[i + k], open: (widgetList[i].preload && widgetList[i].preload == "open") ? true : false });
+                        }
+                        widgetItem = new WidgetItem;
+                        widgetItem.isGroup = true;
+                        widgetItem.label = widgetList[i].groupLabel;
+                        widgetItem.icon = widgetList[i].groupIcon;
+                        widgetItem.widgets = widgetArray;
+
+                        menuItems.addItem(widgetItem);
+                        // move to the next group
+                        i = i + length;
+                    }
+                    else
+                    {
+						if(widgetList[i].position == "toolBar" && widgetList[i].visible.toString().toString()!="false")
+						{
+							// upgrouped 
+							widgetItem = new WidgetItem;
+							widgetItem.id = widgetList[i].id;
+							widgetItem.label = widgetList[i].label;
+							widgetItem.icon = widgetList[i].icon;
+							widgetItem.url = widgetList[i].url;
+							widgetItem.open = widgetList[i].preload && widgetList[i].preload == "open";
+							widgetItem.name = widgetList[i].name;
+							widgetItem.callback = widgetList[i].callback;
+							
+							menuItems.addItem(widgetItem);
+						}
+						
+						// move to the next individual widget
+						i++;
+                    }
+                }
+
+                return menuItems;
+            }
+			
+
+            private function widgetItemDG_widgetItemClickHandler(event:Event):void
+            {
+                var widgetItem:WidgetItem = ItemRenderer(event.target).data as WidgetItem;
+                if (widgetItem.isGroup)
+                {
+                    groupWidgetAC = new ArrayCollection();
+                    // check the array of widgets if they are open before hand
+                    for each (var widgetObj:Object in widgetItem.widgets)
+                    {
+                        var widgetItem1:WidgetItem = new WidgetItem;
+                        widgetItem1.id = widgetObj.widget.id;
+                        widgetItem1.label = widgetObj.widget.label;
+                        widgetItem1.icon = widgetObj.widget.icon;
+                        widgetItem1.url = widgetObj.widget.url;
+                        widgetItem1.open = widgetObj.open;
+
+                        groupWidgetAC.addItem(widgetItem1);
+                    }
+                    menuToolTip.visible = false;
+                    widgetList.visible = true;
+                }
+				else
+				{
+					if( widgetItem.name == "clear" )
+					{
+						//ViewerContainer.dispatchEvent(new AppEvent(AppEvent.CLEAR_MAP));
+//						for each(var obj:Object in map.layers)
+//						{
+//							if(obj is GraphicsLayer)
+//							{
+//								var gralayers:GraphicsLayer = obj as GraphicsLayer;
+//								if(gralayers!=null)
+//								{
+//									gralayers.visible = false;
+//									gralayers.clear();
+//								}
+//								
+//							}
+//					    }
+						 
+						ViewerContainer.dispatchEvent(new AppEvent(AppEvent.CLEAR_MAP));
+					 
+						/*  
+						清除图例
+						*/
+						//var legParaObj:Object = new Object();
+						//legParaObj.operate = "clear";
+						//legParaObj.legendName = "all";
+						//.dispatchEvent(new AppEvent(AppEvent.LEGEND_EDIT, legParaObj));
+					}
+					else if(widgetItem.callback)
+					{
+						ExternalInterface.call(widgetItem.callback, widgetItem.name);
+					}
+					else
+					{
+						ViewerContainer.dispatchEvent(new AppEvent(AppEvent.WIDGET_RUN, widgetItem.id));
+					}
+				}
+			}
+			
+			
+			private function widgetList_widgetItemClickHandler(event:Event):void
+			{
+                var widgetItem:WidgetItem = ItemRenderer(event.target).data as WidgetItem;
+                ViewerContainer.dispatchEvent(new AppEvent(AppEvent.WIDGET_RUN, widgetItem.id));
+            }
+
+            [Bindable]
+            private var xOver:int;
+
+            private function widgetItemDG_widgetItemMouseOverHandler(event:Event):void
+            {
+                var pointGlobal:Point = ItemRenderer(event.target).localToGlobal(new Point(0, 0));
+                var pointLocal:Point = headerGroup.globalToLocal(pointGlobal); // get the local coordinates where the menuItem will be shown
+
+                xOver = pointLocal.x;
+
+                widgetList.visible = false;
+                if (WidgetItem(ItemRenderer(event.target).data).label)
+                {
+                    menuToolTip.visible = true;
+                    menuTitle.text = WidgetItem(ItemRenderer(event.target).data).label;
+                }
+            }
+
+            private function widgetItemDG_widgetItemMouseOutHandler(event:Event):void
+            {
+                menuToolTip.visible = false;
+            }
+
+            private function widgetStateChangedHandler(event:AppEvent):void
+            {
+                var data:Object = event.data;
+                for (var i:Number = 0; i < widgetItemAC.length; )
+                {
+                    if (widgetItemAC.getItemAt(i).isGroup)
+                    {
+                        // make sure to check it for the array of widgets(group) if they are open before hand
+                        var widgetFound:Boolean;
+                        for each (var widgetObj:Object in widgetItemAC.getItemAt(i).widgets)
+                        {
+                            if (data.id as Number == widgetObj.widget.id)
+                            {
+                                widgetFound = true;
+                                widgetObj.open = (data.state as String == WidgetStates.WIDGET_OPENED) || (data.state as String == WidgetStates.WIDGET_MINIMIZED);
+                                break;
+                            }
+                        }
+                        if (widgetFound)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            i++;
+                        }
+                    }
+                    else
+                    {
+                        if (data.id as Number == widgetItemAC.getItemAt(i).id)
+                        {
+                            widgetItemAC.getItemAt(i).open = (data.state as String == WidgetStates.WIDGET_OPENED) || (data.state as String == WidgetStates.WIDGET_MINIMIZED);
+                            break;
+                        }
+                        else
+                        {
+                            i++;
+                        }
+                    }
+                }
+                // check for any grouped widgets
+                if (groupWidgetAC && groupWidgetAC.length > 0)
+                {
+                    for (var j:Number = 0; j < groupWidgetAC.length; )
+                    {
+                        if (data.id as Number == groupWidgetAC.getItemAt(j).id)
+                        {
+                            groupWidgetAC.getItemAt(j).open = (data.state as String == WidgetStates.WIDGET_OPENED) || (data.state as String == WidgetStates.WIDGET_MINIMIZED);
+                            widgetList.visible = false;
+                            break;
+                        }
+                        else
+                        {
+                            j++;
+                        }
+                    }
+                }
+            }
+
+            private function widgetList_rollOutHandler(event:MouseEvent):void
+            {
+                widgetList.visible = false;
+            }
+			
+			
+			private function fullscreen_clickHandler(event:MouseEvent):void
+			{
+				if(stage.displayState==StageDisplayState.NORMAL)
+				{
+					stage.displayState = StageDisplayState.FULL_SCREEN;
+					fullscreen.setStyle("icon",normalIcon);
+				}
+				else
+				{
+					stage.displayState = StageDisplayState.NORMAL;
+					fullscreen.setStyle("icon",fullscreenIcon);
+				}
+			}
+			
+			private function mouseOutHandler(event:MouseEvent):void
+			{
+				menuToolTip.visible = false;
+			}
+			
+			private function mouseOverHandler(event:MouseEvent):void
+			{
+				xOver = event.currentTarget.x;
+				
+				menuToolTip.visible = true;
+				
+				if(stage.displayState==StageDisplayState.NORMAL)
+				{
+					menuTitle.text = "全屏";
+				}
+				else
+				{
+					menuTitle.text = "退出全屏";
+				}
+				
+			}
+			
+        ]]>
+    </fx:Script>
+
+	
+    <s:Group id="headerGroup"  
+             width="{widgetItemAC.length*40}" height="40" >
+        <mx:HBox id="headerContent"
+                 width="100%" height="100%"
+                 horizontalGap="2"
+                 paddingLeft="2"
+				 backgroundColor="{getStyle('contentBackgroundColor')}" 
+				 backgroundAlpha="{getStyle('contentBackgroundAlpha')}"
+                 verticalAlign="middle"
+				 cornerRadius="8"
+				 horizontalAlign="center"
+                 verticalScrollPolicy="off">
+			<mx:Spacer width="10"/>
+            <HeaderController:WidgetItemDataGroup id="widgetItemDG"
+                                                  dataProvider="{widgetItemAC}"
+                                                  widgetItemClick="widgetItemDG_widgetItemClickHandler(event)"
+												  widgetItemMouseOut="widgetItemDG_widgetItemMouseOutHandler(event)"
+												  widgetItemMouseOver="widgetItemDG_widgetItemMouseOverHandler(event)">
+                <HeaderController:layout>
+                    <s:HorizontalLayout gap="10"
+                                        useVirtualLayout="true"
+                                        verticalAlign="middle"/>
+                </HeaderController:layout>
+            </HeaderController:WidgetItemDataGroup>
+			
+			<!-- lxl 20120217 全屏功能必须使用鼠标点击来直接触发 -->
+			<mx:LinkButton  id="fullscreen"  height="0" visible="false" 
+							icon="{fullscreenIcon}"
+							click="fullscreen_clickHandler(event)" 
+							mouseOver="mouseOverHandler(event)" 
+							mouseOut="mouseOutHandler(event)" 
+							>
+				
+			</mx:LinkButton>
+			
+            <mx:Spacer width="10"/>
+        </mx:HBox>
+		
+		<s:VGroup id="menuToolTip"
+				  x="{xOver + 12 - menuToolTipBox.width/2}" y="{headerContent.height}"
+				  gap="0"
+				  horizontalAlign="center"
+				  visible="false">
+			<s:Graphic id="menuTriangle" visible="{menuToolTip.visible}">
+				<s:Group>
+					<s:Path data="m 7 0 l 7 14 l -14 0 z">
+						<s:fill>
+							<mx:SolidColor alpha="1" color="{getStyle('contentBackgroundColor')}"/>
+						</s:fill>
+					</s:Path>
+				</s:Group>
+			</s:Graphic>
+			<s:BorderContainer id="menuToolTipBox"
+							   width="{menuTitle.width + 8}" height="{menuTitle.height +2}"
+							   backgroundColor="{getStyle('contentBackgroundColor')}"
+							   borderVisible="false"
+							   cornerRadius="10"
+							   visible="{menuToolTip.visible}">
+				<s:layout>
+					<s:HorizontalLayout horizontalAlign="center" verticalAlign="middle"/>
+				</s:layout>
+				<s:Label id="menuTitle"
+						 paddingBottom="4"
+						 paddingLeft="5"
+						 paddingRight="5"
+						 paddingTop="5"
+						 visible="{menuToolTip.visible}"/>
+			</s:BorderContainer>
+		</s:VGroup>
+		
+        <s:BorderContainer id="widgetList"
+                           x="{xOver + 4 - widgetListDG.width/2}" y="{headerContent.height}" width="{widgetListDG.width + 4}" height="{widgetListDG.height + 2}"
+                           backgroundColor="{getStyle('contentBackgroundColor')}"
+                           borderColor="{getStyle('color')}"
+                           borderVisible="true"
+                           cornerRadius="3"
+                           rollOut="widgetList_rollOutHandler(event)"
+                           visible="false">
+            <HeaderController:WidgetListDataGroup id="widgetListDG"
+                                                  width="150"
+                                                  dataProvider="{groupWidgetAC}"
+                                                  visible="{widgetList.visible}"
+                                                  widgetListItemClick="widgetList_widgetItemClickHandler(event)">
+                <HeaderController:layout>
+                    <s:VerticalLayout paddingTop="6"
+                                      useVirtualLayout="true"
+                                      verticalAlign="middle"/>
+                </HeaderController:layout>
+            </HeaderController:WidgetListDataGroup>
+        </s:BorderContainer>
+        <s:filters>
+            <s:DropShadowFilter alpha="0.5"
+                                blurX="10"
+                                blurY="10"/>
+        </s:filters>
+
+		
+    </s:Group>
+</viewer:BaseWidget>

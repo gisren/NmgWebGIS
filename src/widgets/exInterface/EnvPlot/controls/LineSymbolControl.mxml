@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 xmlns:plotapi="com.esrichina.demo.plotapi.*"
+		 creationComplete="init()"
+		 xmlns:EnvPlotApi="widgets.EnvPlotApi.*"
+		 >
+	
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.symbols.SimpleFillSymbol;
+			import com.esri.viewer.ViewerContainer;
+			import com.esrichina.dynamicplot.symbols.GradientColorFillSymbol;
+			
+			import widgets.exInterface.EnvPlot.PlotEvent;
+			
+			
+			private function init():void
+			{
+				ViewerContainer.addEventListener(PlotEvent.PLOT_SELECTED, plotSelectHandler);
+				changeHandler();
+			}
+			
+			
+			/**
+			 * 改变样式后派发
+			 */
+			private function changeHandler(event:Event=null):void
+			{
+				var lineParam:Object = 
+					{
+						outlineColor:outlineColor.selectedColor, 
+						outlineAlpha:outlineAlpha.value,
+						outlineWidth:outlineWidth.value
+					};
+				
+				ViewerContainer.dispatchEvent(new PlotEvent(PlotEvent.LINE_SYMBOL_CHANGE, lineParam)); 
+			}
+			
+			
+			/**
+			 * 显示已选择的标绘的样式
+			 */
+			private function plotSelectHandler(event:PlotEvent):void
+			{
+				var plot:Graphic = event.data as Graphic;
+				if(plot.symbol is SimpleFillSymbol)
+				{
+					var sfs:SimpleFillSymbol = plot.symbol as SimpleFillSymbol;
+					outlineColor.selectedColor = sfs.outline.color;
+					outlineAlpha.value = sfs.outline.alpha;
+					outlineWidth.value = sfs.outline.width;
+				}
+			}
+		]]>
+	</fx:Script>
+	
+	
+	<mx:VBox width="100%" height="100%" label="轮廓线">
+		<s:HGroup width="100%" gap="16" verticalAlign="middle">
+			<s:Label text="颜    色"/>
+			<mx:ColorPicker id="outlineColor" change="changeHandler(event)"
+							selectedColor="0x000000"/>
+		</s:HGroup>
+		<s:HGroup width="100%" gap="16" verticalAlign="middle">
+			<s:Label text="透明度"/>
+			<mx:NumericStepper id="outlineAlpha" change="changeHandler(event)" maximum="1"
+							   minimum="0.1" stepSize="0.1" value="1"/>
+		</s:HGroup>
+		<s:HGroup width="100%" gap="16" verticalAlign="middle">
+			<s:Label text="宽    度"/>
+			<mx:NumericStepper id="outlineWidth"
+							   change="changeHandler(event)" maximum="10" minimum="1"
+							   value="1" width="60"/>
+		</s:HGroup>
+	</mx:VBox>
+	
+</s:Group>

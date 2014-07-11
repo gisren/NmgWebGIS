@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:fx="http://ns.adobe.com/mxml/2009"
+		   xmlns:s="library://ns.adobe.com/flex/spark"
+		   xmlns:mx="library://ns.adobe.com/flex/mx"
+		   >
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.Map;
+			import com.esri.ags.geometry.MapPoint;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Image;
+			private var datas:Array;
+			public var map:Map;
+			public var xmlInfos:Array;
+			public var pageCount:int;//每页包含的记录数
+			private var curPage:int;//当前页码
+			private var totalPage:int;//总页码
+			private var totalCount:int;//总记录条数
+			private var curData:Array;//当前显示的记录
+			public function initData(value:Array):void
+			{
+				//根据传入的值动态加载项
+				
+				if(value!= null && value.length>0)
+				{
+					datas = value;
+					totalCount = value.length;
+					this.totalPage = (this.totalCount + this.pageCount-1)/this.pageCount;
+					setPager(0);
+					this.inputpage.minimum=1;
+					this.inputpage.value=1;
+					this.inputpage.maximum = this.totalPage;
+					
+				}
+				else
+				{
+					valueGroup.removeAllElements();
+					this.totalCount = 0;
+					this.totalPage = 0;
+					this.curPage = 0;
+					this.inputpage.minimum = 0;
+					this.inputpage.maximum = 0;
+					this.pagedetail.text = "第0页/共0页";
+					
+				}
+			}
+			public function setPager(value:int):void
+			{
+				if(value <0 || value>totalPage-1)
+				{
+					return;
+				}
+				else
+				{
+					valueGroup.removeAllElements();
+					this.curPage = value;
+					//记录跳转到页面中的第一条记录所在记录中的第几条记录、
+					var curNum:int = value*pageCount;
+					//清空当前显示数据记录
+					curData = new Array();
+					for(var i:int=curNum;i<curNum + pageCount -1;i++)
+					{
+						curData.push(datas[i]);
+						var gc:Graphic = datas[i] as Graphic;
+						if(gc!= null)
+						{
+							//根据传入的值进行加载
+							var render:ResultItemRender= new ResultItemRender();
+							render.imgSource = gc.attributes["image"].toString();
+							
+							render.distance = gc.attributes["distance"].toString();
+							var layerid:String = gc.attributes["layerid"].toString();
+							var field:String = getFirstFieldName(layerid);
+							render.resultname = gc.attributes[field].toString();
+							render.map = map;	
+							render.gc = gc;
+							render.xmlInfos = xmlInfos;
+							valueGroup.addElement(render);
+						}
+					}
+					var temp:int = curPage+1;
+					this.pagedetail.text = "第"+temp.toString()+"页/共"+this.totalPage.toString()+"页 共"+this.totalCount.toString()+"条记录";
+				}
+			}
+
+			private function getFirstFieldName(layerid:String):String
+			{
+				if(this.xmlInfos!=null && xmlInfos.length>0 && layerid !="")
+				{
+					for each(var info:XmlLayerInfo in xmlInfos)
+					{
+						if(info!=null && info.layerID == Number(layerid))
+						{
+							var fieldinfo:LayerFieldInfo = info.fields[0] as LayerFieldInfo;
+							return fieldinfo.fieldName;
+						}
+					}
+					
+				}
+				
+					return "";
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+
+	<s:VGroup>
+		
+	
+	<s:HGroup>
+		<s:Label text="查询结果" fontSize="20"  verticalAlign="top" />
+	</s:HGroup>
+	<s:HGroup  verticalAlign="bottom">
+		<s:Label text="名称"  width="200"  paddingLeft="30"  />
+		<s:Label text="距离(公里)" width="100"  paddingLeft="10"/>
+	</s:HGroup>
+	<s:HGroup     verticalAlign="middle">
+		<s:VGroup id="valueGroup">
+			
+		</s:VGroup>
+	</s:HGroup>
+	<s:HGroup  >
+		<s:HGroup verticalAlign="middle" horizontalAlign="center">
+			<mx:Label text="第0页/共0页" id="pagedetail"/>
+			<mx:LinkButton label="首页" click="setPager(0);"/>
+			<mx:LinkButton label="上一页" click="setPager(curPage-1);"/>
+			<mx:LinkButton label="下一页" click="setPager(curPage+1);"/>
+			<mx:LinkButton label="末页" click="setPager(totalPage-1);"/>
+			<mx:NumericStepper id="inputpage" stepSize="1" minimum="0" maximum="0"/>
+			<mx:LinkButton label="跳转"  click="setPager(inputpage.value-1);"/>
+		</s:HGroup>
+	</s:HGroup>
+	</s:VGroup>
+</mx:Canvas>

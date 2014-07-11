@@ -1,0 +1,110 @@
+<?xml version="1.0" ?>
+<configuration>
+
+	<!-- 模块信息 -->
+	<widgetInfo widgetName="搜索" widgetUsefulness="在地图的全局范围内搜索与用户输入信息相匹配的对象"/>
+
+	<!-- 搜索结果图标 -->
+	<pointSmallPic>assets/yutuImages/mapIcon/point_blue_small.png</pointSmallPic>
+	
+	<!-- 搜索结果被选中时的地图图标 -->
+	<pointBigPic>assets/yutuImages/mapIcon/point_red_big.png</pointBigPic>
+	
+	<!-- 搜索结果被选中时的列表图标 -->
+	<pointRedPic>assets/yutuImages/mapIcon/point_red_small.png</pointRedPic>
+
+	<!-- 检索图层信息 -->
+    <layers>
+        <layer>
+            <name>地级市</name>
+            <expression>NAME like '%[value]%'</expression>
+            <titlefield>NAME</titlefield>
+            <useAMF>true</useAMF>
+            <fields all="false">
+                <field name="NAME" alias ="名称"/>
+            </fields>
+        </layer>
+        <layer>
+            <name>县级市</name>
+            <expression>NAME like '%[value]%'</expression>
+            <titlefield>NAME</titlefield>
+            <useAMF>true</useAMF>
+            <fields all="false">
+                <field name="NAME" alias ="名称"/>
+            </fields>
+        </layer>
+        <layer>
+            <name>乡镇名</name>
+            <expression>NAME like '%[value]%'</expression>
+            <titlefield>NAME</titlefield>
+            <useAMF>true</useAMF>
+            <fields all="false">
+                <field name="NAME" alias ="名称"/>
+            </fields>
+        </layer>
+        <layer>
+            <name>居民小区村庄</name>
+            <expression>NAME like '%[value]%'</expression>
+            <titlefield>NAME</titlefield>
+            <useAMF>true</useAMF>
+            <fields all="false">
+                <field name="NAME" alias ="名称"/>
+            </fields>
+        </layer>
+        <layer>
+            <name>教育科研</name>
+            <expression>NAME like '%[value]%'</expression>
+            <titlefield>NAME</titlefield>
+            <useAMF>true</useAMF>
+            <fields all="false">
+                <field name="NAME" alias ="名称"/>
+            </fields>
+        </layer>
+    	<layer>
+            <name>商场购物</name>
+            <expression>NAME like '%[value]%'</expression>
+            <titlefield>NAME</titlefield>
+            <useAMF>true</useAMF>
+            <fields all="false">
+                <field name="NAME" alias ="名称"/>
+            </fields>
+        </layer>
+        <layer>
+            <name>餐饮场所</name>
+            <expression>NAME like '%[value]%'</expression>
+            <titlefield>NAME</titlefield>
+            <useAMF>true</useAMF>
+            <fields all="false">
+                <field name="NAME" alias ="名称"/>
+            </fields>
+        </layer>
+        <layer>
+            <name>公安</name>
+            <expression>NAME like '%[value]%'</expression>
+            <titlefield>NAME</titlefield>
+            <useAMF>true</useAMF>
+            <fields all="false">
+                <field name="NAME" alias ="名称"/>
+            </fields>
+        </layer>
+        <layer>
+            <name>党政机关</name>
+            <expression>NAME like '%[value]%'</expression>
+            <titlefield>NAME</titlefield>
+            <useAMF>true</useAMF>
+            <fields all="false">
+                <field name="NAME" alias ="名称"/>
+            </fields>
+        </layer>
+        <layer>
+            <name>医疗卫生</name>
+            <expression>NAME like '%[value]%'</expression>
+            <titlefield>NAME</titlefield>
+            <useAMF>true</useAMF>
+            <fields all="false">
+                <field name="NAME" alias ="名称"/>
+            </fields>
+        </layer>
+	</layers>
+</configuration>
+

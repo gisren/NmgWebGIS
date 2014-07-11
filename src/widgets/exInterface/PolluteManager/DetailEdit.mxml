@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:TitleWindow xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			   xmlns:s="library://ns.adobe.com/flex/spark" 
+			   xmlns:mx="library://ns.adobe.com/flex/mx" 
+			   close="onWindowClose()"
+			   move="onWidgetMove()" 
+			   creationComplete="init()"
+			   x="15" y="150"
+			   width="240" height="160"
+			   cornerRadius="5" 
+			   alpha="1" xmlns:flexiframe="com.google.flexiframe.*">
+	<fx:Script>
+		
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.Map;
+			import com.esri.ags.events.DrawEvent;
+			import com.esri.ags.geometry.Geometry;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.layers.Layer;
+			import com.esri.ags.symbols.PictureMarkerSymbol;
+			import com.esri.ags.symbols.Symbol;
+			import com.esri.ags.utils.JSON;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			import com.mapUni.BaseClass.MapUni;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			public var webUrl:String;
+			public var editPoint:Graphic;
+			public var map:Map;
+			
+			public var isMove:Boolean=true;
+			public var gra:Graphic=new Graphic();
+			private var graphicsLayerDL:GraphicsLayer=new GraphicsLayer();
+			
+			[Embed(source="assets/yutuImages/mapIcon/pushpin_centered.png")]
+			private var imageCursor:Class;
+			private var graSymbol:Symbol;
+			private  var FK_ID:String;
+			private  var Guid:String;
+			private  var strX:String;
+			private  var strY:String;
+			/**
+			 * 监听：关闭窗口 moveUpdate="onWidgetMove()"
+			 */
+			private function onWindowClose():void
+			{
+				//frm.visible=false;
+				this.visible =false;
+			 
+			}
+			/**
+			 * 监听：窗口移动 
+			 */
+			private function onWidgetMove():void
+			{
+				//frm.invalidateDisplayList();
+			}
+			/**
+			 * 监听：窗口初始化
+			 */
+			private function init():void
+			{
+				this.title="坐标更改";
+				longitude.text=editPoint.attributes["JD"].toString();
+				latitude.text=editPoint.attributes["WD"].toString();
+			}
+			
+			
+			private function ItudeSubmit_clickHandler():void
+			{
+				if(longitude.text==""||latitude.text=="")
+				{
+				  Alert.show("经纬度不能有空值");
+				  return;
+				}
+					
+					
+			    FK_ID=editPoint.attributes["id"].toString();
+				Guid=editPoint.attributes["Guid"].toString();
+			    strX=longitude.text.toString();
+				strY=latitude.text.toString();
+				
+			    MapUni.callWebService(webUrl,"UpDataEntInfo",[FK_ID,Guid,strX,strY],onResultFunction);
+				
+				onWindowClose();
+			  }
+		   private function onResultFunction(event:ResultEvent,token:Object = null):void
+			{
+				//-1为无此企业， 0为修改失败，1为修改成功
+				var status:String=event.result.toString();
+				if(status=="-1")
+				{
+				     Alert.show("修改失败");
+				}
+				else if(status=="0")
+				{
+					 Alert.show("修改失败");
+				}
+				else if(status=="1")
+				{
+					
+					var Pollute:Layer=map.getLayer("polluteLayer");
+					 var gra:ArrayCollection=Pollute["graphicProvider"];
+					 for(var i=0;i<gra.length;i++)
+					 {
+						 if(gra[i].attributes.id==FK_ID)
+						 {
+							 Pollute["graphicProvider"][i].attributes.JD=strX;
+							 Pollute["graphicProvider"][i].attributes.WD=strY;
+						 
+							 Pollute["graphicProvider"][i].geometry.x=Number(strX);
+							 Pollute["graphicProvider"][i].geometry.y=Number(strY);
+							// Pollute["graphicProvider"][i]
+							 break;
+						 }
+						 
+					 }
+					 
+					 map.removeLayer(map.getLayer("polluteLayer"));
+					 Pollute.id="polluteLayer";
+					 map.addLayer(Pollute);
+					 Alert.show("修改成功");
+				}
+				map.infoWindow.hide();
+				if(graphicsLayerDL){graphicsLayerDL.clear();}
+				
+			}
+			private function ItudeReset_clickHandler():void
+			{
+				longitude.text="";
+				latitude.text="";
+			}
+			
+			
+			//地图选择点位
+			private function activateReseau(event:MouseEvent):void
+			{
+				if(graphicsLayerDL)
+				{
+					graphicsLayerDL.clear();
+				}
+				setMapAction("mappoint", "点击添加点位", null, map_drawEndHandler);
+				this.cursorManager.setCursor(imageCursor, 1, -36, -40);
+			}
+			
+			
+			public function setMapAction(action:String, status:String, symbol:Symbol, callback:Function):void
+			{
+				var data:Object =
+					{
+						tool: action,
+						status: status,
+						symbol: symbol,
+						handler: callback
+					};
+				ViewerContainer.dispatchEvent(new AppEvent(AppEvent.SET_MAP_ACTION, data));
+			}
+			
+			
+			private function map_drawEndHandler(event:DrawEvent):void
+			{
+		        isMove=true;
+				this.cursorManager.removeAllCursors();
+				event.target.deactivate();
+				var geom:Geometry = event.graphic.geometry;
+				setDLObject(geom);
+            }
+			private function setDLObject(geom:Geometry):void{		
+				graSymbol=new PictureMarkerSymbol(imageCursor)
+				gra=new Graphic(geom,graSymbol);
+				gra.attributes=new Object();
+				gra.addEventListener(MouseEvent.MOUSE_DOWN,EditMouseDown);
+				graphicsLayerDL.add(gra);
+				map.addLayer(graphicsLayerDL);
+				longitude.text=Number(geom["x"]).toFixed(5).toString();
+				latitude.text= Number(geom["y"]).toFixed(5).toString();
+				
+			}
+			public function EditMouseDown(event:MouseEvent):void
+			{
+				//设置标注点开始拖动
+				gra.startDrag();
+				gra.addEventListener(MouseEvent.MOUSE_UP,EditMouseUp);
+			}
+			public function EditMouseUp(event:MouseEvent):void
+			{
+				//设置标注点停止拖动
+				gra.stopDrag();
+				gra.removeEventListener(MouseEvent.MOUSE_UP,EditMouseUp);
+				//var mapPnt:MapPoint=map.toMap(new Point(event.stageX-330,event.stageY-116));
+				//将当前屏幕坐标转换为地图用坐标
+				var mapPnt:MapPoint=map.toMapFromStage(event.stageX-22,event.stageY+22);
+				var mpt:MapPoint = new MapPoint(mapPnt.x,mapPnt.y);
+				gra.geometry=mpt;
+				longitude.text=Number(mpt.x).toFixed(5).toString();
+				latitude.text=Number(mpt.y).toFixed(5).toString();
+				
+			}	 
+			
+			
+			
+			 
+//			private function dlDelete():void{
+//				
+//				graphicsLayerDL.remove(gra as Graphic);
+//				graphicsLayerDL.remove(txt as Graphic);
+//				map.infoWindow.hide();
+//			}
+			
+		]]>
+	</fx:Script>
+	<s:Rect top="0" left="0" right="4" bottom="4" >
+		<s:fill>
+			<s:SolidColor color="{getStyle('contentBackgroundColor')}" alpha=".75" />
+		</s:fill>
+		<s:filters>
+			<s:DropShadowFilter blurX="0" blurY="0" />
+		</s:filters>
+	</s:Rect>
+	 <s:Group width="100%" height="100%" alpha="1">
+		 <s:VGroup x="30" y="22">
+			 <s:HGroup>
+				 <s:VGroup>
+					 <s:HGroup>
+						 <s:Label text="经度：" height="100%"  verticalAlign="middle"  textAlign="right" width="40"/>
+						 <s:TextInput id="longitude" width="100"   restrict="0-9." maxChars="6"/>
+					 </s:HGroup>
+					 <s:HGroup>
+						 <s:Label text="纬度：" height="100%"  verticalAlign="middle"  textAlign="right" width="40"/>
+						 <s:TextInput id="latitude" width="100" paddingRight="20"  restrict="0-9." maxChars="6"/>
+					 </s:HGroup>
+				 </s:VGroup>
+				 <s:VGroup width="35" height="35" paddingTop="2"  paddingLeft="8" accentColor="0xff0000">
+					 <mx:Image width="20" height="20" buttonMode="true" 
+							   click="activateReseau(event)" source="assets/yutuImages/proIcon/mapSelect.png"
+							   toolTip="地图取点" useHandCursor="true"/>
+				 </s:VGroup>
+			 </s:HGroup>
+			 
+			 <s:HGroup paddingTop="5">
+				 <s:Button id="ItudeSubmit" click="ItudeSubmit_clickHandler()" label="提交"/>
+				 <s:Button id="ItudeReset" click="ItudeReset_clickHandler()" label="清空"/>
+			 </s:HGroup>
+		 </s:VGroup>
+	 </s:Group> 
+</s:TitleWindow>

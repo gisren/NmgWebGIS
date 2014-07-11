@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas 
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	width="310" height="55" xmlns:trackMove="widgets.trackMove.*" xmlns:s="library://ns.adobe.com/flex/spark" xmlns:track="widgets.exInterface.trackPlay.track.*" 
+	>
+	<s:VGroup id="DateTimeCanvas" >
+		<s:HGroup>
+			<mx:Label  text="开始时间：" />
+			<track:DateTimePicker id="beginTime" borderStyle="solid"  borderColor="#7DA600" />
+		</s:HGroup>
+		<s:HGroup>
+			<mx:Label  text="结束时间：" />
+			<track:DateTimePicker id="endTime"  borderStyle="solid"  borderColor="#7DA600"/>
+		</s:HGroup>
+	</s:VGroup>
+</mx:Canvas>

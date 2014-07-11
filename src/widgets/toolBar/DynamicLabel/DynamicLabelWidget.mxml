@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				   xmlns:s="library://ns.adobe.com/flex/spark" 
+				   xmlns:mx="library://ns.adobe.com/flex/mx" 
+				   layout="absolute" width="62" height="58"
+				   xmlns:viewer="com.esri.viewer.*"
+				   widgetConfigLoaded="basewidget1_widgetConfigLoadedHandler(event)">
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.events.DrawEvent;
+			import com.esri.ags.geometry.Geometry;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.symbols.PictureMarkerSymbol;
+			import com.esri.ags.symbols.Symbol;
+			import com.esri.ags.symbols.TextSymbol;
+			import com.esri.ags.webmap.PopUpRenderer;
+			import com.esri.ags.webmap.supportClasses.PopUpInfo;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			import com.esri.viewer.WidgetStates;
+			import com.mapUni.BaseClass.InfoWindow.PopUpInfoWindow;
+			import com.mapUni.BaseClass.MapUni;
+			
+			import mx.graphics.ImageSnapshot;
+			import mx.graphics.codec.JPEGEncoder;
+			import mx.graphics.codec.PNGEncoder;
+			import mx.managers.PopUpManager;
+			
+			import spark.components.Label;
+			
+			private var graphicsLayerDL:GraphicsLayer;
+			private var graSymbol:Symbol;
+			
+			[Embed(source="assets/yutuImages/mapIcon/pushpin_centered.png")]
+			private var imageCursor:Class;
+			
+			protected function basewidget1_widgetConfigLoadedHandler(event:Event):void
+			{
+				if(configXML)
+				{					
+					var iconString:String=configXML.iconDynamicLabel;
+					graSymbol=new PictureMarkerSymbol(iconString);//,64,64,-16,-16
+				}
+				
+				graphicsLayerDL=new GraphicsLayer();
+				graphicsLayerDL.id="动态标注";
+				map.addLayer(graphicsLayerDL);			
+				
+				ViewerContainer.addEventListener(AppEvent.CLEAR_MAP, clearAllData);
+				
+				ViewerContainer.addEventListener(AppEvent.WIDGET_RUN, widgetStateChangedHandler);
+				setAction();
+			}
+			
+			private function clearAllData(event:AppEvent=null):void{
+				graphicsLayerDL.clear();
+				
+				if(infoWindowShow==true)
+					map.infoWindow.hide();
+			}
+			
+			
+			private function widgetStateChangedHandler(event:AppEvent):void
+			{
+				var data:Object = event.data;
+				if(Number(data)==this.widgetId){
+					setAction();
+				}
+			}	
+			
+			private function setAction():void{
+				setMapAction("mappoint", "点击添加标注", null, map_drawEndHandler);
+				this.cursorManager.setCursor(imageCursor, 1, -36, -40);
+			}
+			
+			private function map_drawEndHandler(event:DrawEvent):void
+			{
+				this.cursorManager.removeAllCursors();
+				event.target.deactivate();
+				var geom:Geometry = event.graphic.geometry;
+				
+				setDLObject(geom);
+				
+				var a:Number = this.widgetId;				
+				var o:Object = {					
+					id:a,
+					state:WidgetStates.WIDGET_CLOSED
+				};
+				
+				ViewerContainer.dispatchEvent(new AppEvent(AppEvent.WIDGET_CHANGE_STATE, o));
+			}
+			
+			private function setDLObject(geom:Geometry):void{		
+				var gra:Graphic=new Graphic(geom,graSymbol);
+				//gra.id=dlGraphicID.toString();				
+				gra.attributes=new Object();
+				gra.attributes["name"]="标注点";
+				var txt:Graphic = addTxtLabel(gra)	
+				gra.attributes["txtGra"]=txt;
+				//gra.addEventListener(MouseEvent.CLICK,graClick);
+				gra.addEventListener(MouseEvent.MOUSE_DOWN,graMouseDownHandler);
+				gra.addEventListener(MouseEvent.MOUSE_MOVE,graMouseMoveHandler);
+				gra.addEventListener(MouseEvent.MOUSE_UP,graMouseUpHandler);
+				graphicsLayerDL.add(gra);
+				
+				showEditor(gra);
+			}
+			
+			private var isMoving:Boolean=false;
+			//			
+			private var graSelected:Graphic;
+			private function graMouseDownHandler(event:MouseEvent):void{
+				graSelected=event.currentTarget as Graphic;
+				map.addEventListener(MouseEvent.MOUSE_MOVE,graMouseMoveHandler);
+			}
+			//			
+			private function graMouseMoveHandler(event:MouseEvent):void{	
+				if(event.buttonDown && graSelected)
+				{
+					var gra:Graphic=graSelected as Graphic;		
+					var pnt:MapPoint=map.toMapFromStage(map.contentMouseX,map.contentMouseY);
+					gra.geometry=pnt as Geometry;
+					isMoving=true;
+					(gra.attributes["txtGra"] as Graphic).geometry=pnt as Geometry;					
+				}
+			}
+			
+			private function graMouseUpHandler(event:MouseEvent):void{
+				graSelected=null;
+				map.removeEventListener(MouseEvent.MOUSE_MOVE,graMouseMoveHandler);
+				
+				var gra:Graphic=event.currentTarget as Graphic;
+				if(isMoving)
+				{
+					isMoving=false;
+					if(infoWindowShow)
+						map.infoWindow.show(gra.geometry as MapPoint);
+				}
+				else{
+					showEditor(gra);
+				}
+			}
+			
+			private function showEditor(gra:Graphic):void{
+				
+				var editor:dlEditor=new dlEditor();
+				editor.graphic=gra;
+				editor.addEventListener(dlEditor.DLSAVE,dlSaveHandler);
+				editor.addEventListener(dlEditor.DLDELETE,dlDeleteHandler);
+				editor.addEventListener(dlEditor.SAVEPICTURE,dlSavePictureHandler);
+				map.infoWindow.content = editor;
+				
+				map.infoWindow.show(gra.geometry as MapPoint);
+				infoWindowShow=true;
+				map.infoWindow.addEventListener(Event.CLOSE,infoWindowCloseHandler);
+			}
+			
+			private var infoWindowShow:Boolean=false;
+			private function infoWindowCloseHandler(event:Event):void{
+				infoWindowShow=false;
+			}
+			
+			private function dlSavePictureHandler(event:Event):void{
+				var rect:Rectangle=screen;
+				
+				
+				//用bitmapdata全部获取预览图片的像素
+				var initBD:BitmapData = new BitmapData(screen.width, screen.height);
+				initBD.draw(map);
+				
+				//截取出所选区域的像素集合
+				//矩形为要截取区域 
+				var bytearray:ByteArray = new ByteArray();
+				var re:Rectangle = new Rectangle(rect.x, rect.y, rect.width, rect.height);
+				bytearray = initBD.getPixels(re); 
+				bytearray.position = 0; 		//必须的，当前的bytearray.position为最大长度，要设为从0开始读取
+				
+				//将截取出的像素集合存在新的bitmapdata里，大小和截取区域一样
+				if(rect.width && rect.height)
+				{
+					var imgBD:BitmapData;
+					imgBD = new BitmapData(rect.width, rect.height);
+					var fillre:Rectangle = new Rectangle(0, 0, rect.width, rect.height);
+					imgBD.setPixels(fillre, bytearray); 
+					
+					if(imgBD)
+					{
+						var bitmap:Bitmap = new Bitmap(imgBD);
+						
+						var imgshot:ImageSnapshot = new ImageSnapshot();
+						var _imageFormate:String = "PNGEncoder";
+						if(_imageFormate == "PNGEncoder")
+						{
+							imgshot = ImageSnapshot.captureImage(bitmap, 0, new PNGEncoder());
+						}
+						else if(_imageFormate == "JPEGEncoder")
+						{
+							imgshot = ImageSnapshot.captureImage(bitmap, 0, new JPEGEncoder());
+						}
+						
+						fileReference.save(imgshot.data, "未命名.png");
+					}
+					
+				}
+			}
+			private var fileReference:FileReference = new FileReference();
+			
+			private function addTxtLabel(graDL:Graphic):Graphic{	
+				var grphTextSource:Graphic=new Graphic();//固废企业标注
+				//grphTextSource.id=dlGraphicID.toString();
+				grphTextSource.geometry=graDL.geometry;
+				var txtFormat:TextFormat=new TextFormat();
+				txtFormat.size=13;
+				txtFormat.font="黑体";
+				//placement:start 标注将出现在graphic的右侧
+				grphTextSource.symbol=new TextSymbol(graDL.attributes["name"],null,0x33FF00,false,0,true,0x0066FF,"start",0,16,0,txtFormat);				
+				graphicsLayerDL.add(grphTextSource);
+				return grphTextSource;
+			}
+			
+			private function dlSaveHandler(evt:Event):void{				
+				var gra:Graphic=(evt.currentTarget as dlEditor).graphic;
+				var lblName:String=gra.attributes["name"].toString();
+				
+				((gra.attributes["txtGra"] as Graphic).symbol as TextSymbol).text=lblName;
+				map.infoWindow.hide();
+			}
+			
+			private function dlDeleteHandler(evt:Event):void{
+				var gra:Graphic=(evt.currentTarget as dlEditor).graphic;
+				var graTxt:Graphic=(gra.attributes["txtGra"] as Graphic);
+				graphicsLayerDL.remove(gra as Graphic);
+				graphicsLayerDL.remove(graTxt);
+				map.infoWindow.hide();
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+</viewer:BaseWidget>

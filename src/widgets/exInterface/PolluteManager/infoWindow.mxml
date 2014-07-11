@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 xmlns:supportClasses="com.esri.ags.skins.supportClasses.*"
+		 creationComplete="group1_creationCompleteHandler(event)"
+		 width="250" 
+		 >
+
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.Map;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.symbols.PictureMarkerSymbol;
+			import com.esri.viewer.ConfigData;
+			import com.mapUni.BaseClass.MapUni;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			public var map:Map;
+			public var configXML:XML;
+			public var webUrl:String;
+			public var selectedGra:Graphic;
+			public var attribute:Object;
+			public var  moveSymbolBool:Boolean=false;//判断是否移动 鼠标按下事件为true  鼠标弹出为false
+			public var imageStateBool:Boolean=true; //设定保存企业信息是否可见
+			public var myGraphicsLayer:GraphicsLayer//当前地图图形的集合
+			public var tempGraphicLayer:GraphicsLayer=new GraphicsLayer();//临时标注的图层
+			public var tempGraphic:Graphic=new Graphic();//临时的图形
+			public var QY_code:String;//企业的编码
+			
+			
+			protected function group1_creationCompleteHandler(event:FlexEvent):void
+			{
+				info_line.graphics.lineStyle(0, 0x666666);
+				info_line.graphics.moveTo(0, 0);
+				info_line.graphics.lineTo(230, 0);
+				
+				control_line.graphics.lineStyle(0, 0x999999);
+				control_line.graphics.moveTo(0, 0);
+				control_line.graphics.lineTo(230, 0);
+				map.addLayer(tempGraphicLayer);
+			}
+			
+			protected function linkbutton1_clickHandler(event:MouseEvent):void
+			{
+				var str:String = attribute[configXML.polluteUrl.@codeField].toString();
+				ExternalInterface.call("GetExternal_EntInfo",str);
+			}
+			
+			protected function linkbutton2_clickHandler(event:MouseEvent):void
+			{
+				
+				ExternalInterface.call("GetExternal_EntVideoInfo",attribute[configXML.polluteUrl.@codeField].toString());
+			}
+			
+			protected function video_clickHandler(event:MouseEvent):void
+			{
+				
+			}
+
+
+			protected function Linkbtn_clickHandler(event:MouseEvent):void
+			{
+				//通过在地图上移动图标或者点击来修改企业坐标
+				if(imageStateBool)
+				{
+					map.mouseEnabled=false;
+					map.panEnabled=false;
+					imageStateBool=false;
+					
+					var tempImage:Image=event.currentTarget as  Image;
+					tempImage.toolTip="取消编辑企业坐标";
+					tempImage.source="assets/images/yutu/取消修改.png";
+					CheckEventListener();					
+					map.addEventListener(MouseEvent.MOUSE_DOWN,onMapMouseDown);//鼠标按下的事件
+					map.addEventListener(MouseEvent.MOUSE_MOVE,onMapMouseMove);	//鼠标移动的事件
+					map.addEventListener(MouseEvent.MOUSE_UP,onMapMouseUp);//鼠标弹出的事件
+					
+					SetPictureSymbol(selectedGra.geometry as MapPoint);
+					ImageVisible(true);
+					
+					var graphicsCollection:ArrayCollection=myGraphicsLayer.graphicProvider as ArrayCollection;
+					for each(var tGaphic:Graphic in graphicsCollection)
+					{
+						var objAttribute:Object=tGaphic.attributes;
+						if(objAttribute["QYDM"].toString()==QY_code)
+						{
+							tGaphic.visible=false;
+							return;
+						}
+					}
+				}
+				else
+				{
+					imageStateBool=true;
+					var tempImage:Image=event.currentTarget as  Image;
+					tempImage.toolTip="修改企业坐标";
+					tempImage.source="assets/images/yutu/修改坐标.png";
+					CheckEventListener();
+					
+					map.mouseEnabled=true;
+					map.panEnabled=true;
+					tempGraphicLayer.clear();
+					
+					ImageVisible(false);
+					
+					SetXYCoordate(selectedGra.geometry as MapPoint);
+					var graphicsCollection:ArrayCollection=myGraphicsLayer.graphicProvider as  ArrayCollection;
+					for each(var tGaphic:Graphic in graphicsCollection)
+					{					
+						var objAttribute:Object=tGaphic.attributes;
+						if(objAttribute["QYDM"].toString()==QY_code)
+						{
+							tGaphic.visible=true;
+							return;
+						}					
+					}
+				}
+			}
+			
+			//设定移动的符号
+			public function SetPictureSymbol(pPoint:MapPoint):void
+			{
+				tempGraphicLayer.clear();			
+				tempGraphic.geometry=pPoint;
+				var objAttribute:Object=selectedGra.attributes;
+				var pictureMarkerSymbol:PictureMarkerSymbol=new PictureMarkerSymbol();
+				pictureMarkerSymbol.source="assets/images/yutu/Pin1.png";
+				pictureMarkerSymbol.yoffset=25;
+				
+				tempGraphic.symbol=pictureMarkerSymbol;
+				tempGraphicLayer.add(tempGraphic);
+			}
+			
+			
+			//检查系统是否监听了所对应的事件
+			public function CheckEventListener():void
+			{
+				
+				if(map.hasEventListener(MouseEvent.MOUSE_DOWN))
+				{	
+					map.removeEventListener(MouseEvent.MOUSE_DOWN,onMapMouseDown);
+				}  
+				if(map.hasEventListener(MouseEvent.MOUSE_MOVE))
+				{	
+					map.removeEventListener(MouseEvent.MOUSE_MOVE,onMapMouseMove);
+				}  
+				if(map.hasEventListener(MouseEvent.MOUSE_UP))
+				{	
+					map.removeEventListener(MouseEvent.MOUSE_UP,onMapMouseUp);
+				}  
+			}
+			
+			public function onMapMouseDown(event:MouseEvent):void
+			{
+				
+				map.mouseEnabled=false;
+				map.panEnabled=false;
+				moveSymbolBool=true;
+				var tMapPoint:MapPoint= map.toMapFromStage(event.stageX,event.stageY);
+				SetPictureSymbol(tMapPoint);
+			}
+			public function onMapMouseMove(event:MouseEvent):void
+			{
+				if(moveSymbolBool==true)
+				{
+					var tMapPoint:MapPoint= map.toMapFromStage(event.stageX,event.stageY);
+					SetPictureSymbol(tMapPoint);			   
+					SetXYCoordate(tMapPoint);
+				}
+			}
+			public function onMapMouseUp(event:MouseEvent):void
+			{			
+				if(moveSymbolBool)
+				{
+					moveSymbolBool=false;
+					var tMapPoint:MapPoint= map.toMapFromStage(event.stageX,event.stageY);
+					SetPictureSymbol(tMapPoint);				
+					SetXYCoordate(tMapPoint);
+				}			
+			}
+			
+
+			protected function savebtn_clickHandler(event:MouseEvent):void
+			{
+				if(tempGraphic!=null&&tempGraphic.geometry!=null)
+				{								
+					var mapPt:MapPoint=tempGraphic.geometry as  MapPoint;				
+					var FK_ID:String=selectedGra.attributes["id"].toString();
+					var Guid:String=selectedGra.attributes["Guid"].toString();
+					var strX:String=mapPt.x.toFixed(6);
+					var strY:String=mapPt.y.toFixed(6);
+					
+					MapUni.callWebService(webUrl,"UpDataEntInfo",[FK_ID,Guid,strX,strY],onResult,null,onFault);
+					function onResult(e:ResultEvent):void
+					{
+						
+						Alert.show("修改坐标成功");
+						var str:String = e.result.toString();
+						
+						if(str=="1")
+						{
+							var mapPt:MapPoint=tempGraphic.geometry as  MapPoint;				
+							
+							SetXYCoordate(mapPt);	
+							Linkbtn.toolTip="修改企业坐标";
+							Linkbtn.source="assets/images/yutu/修改坐标.png";
+							CheckEventListener();
+							map.mouseEnabled=true;
+							map.panEnabled=true;
+							tempGraphicLayer.clear();
+							ImageVisible(false);
+							imageStateBool=true;
+							
+							var graphicsCollection:ArrayCollection=myGraphicsLayer.graphicProvider as  ArrayCollection;
+							for each(var tGaphic:Graphic in graphicsCollection)
+							{					
+								var objAttribute:Object=tGaphic.attributes;
+								if(objAttribute["QYDM"].toString()==QY_code)
+								{
+									tGaphic.visible=true;
+									tGaphic.geometry=tempGraphic.geometry;
+									return;
+								}
+							}
+						}
+						else
+						{
+							imageStateBool=true;
+							Linkbtn.toolTip="修改企业坐标";
+							CheckEventListener();
+							map.mouseEnabled=true;
+							map.panEnabled=true;
+							tempGraphicLayer.clear();
+							
+							SetXYCoordate(selectedGra.geometry as MapPoint);
+							var graphicsCollection:ArrayCollection=myGraphicsLayer.graphicProvider as  ArrayCollection;
+							for each(var tGaphic:Graphic in graphicsCollection)
+							{					
+								var objAttribute:Object=tGaphic.attributes;
+								if(objAttribute["QYDM"].toString()==QY_code)
+								{
+									tGaphic.visible=true;
+									return;
+								}					
+							}
+							
+							Alert.show("数据保存失败");
+							
+						}
+					}
+					
+					function onFault(event:FaultEvent):void
+					{
+						Alert.show("数据保存失败");
+						imageStateBool=true;
+						Linkbtn.toolTip="修改企业坐标";
+						CheckEventListener();
+						
+						map.mouseEnabled=true;
+						map.panEnabled=true;
+						tempGraphicLayer.clear();
+						
+						SetXYCoordate(selectedGra.geometry as MapPoint);
+						var graphicsCollection:ArrayCollection=myGraphicsLayer.graphicProvider as  ArrayCollection;
+						for each(var tGaphic:Graphic in graphicsCollection)
+						{					
+							var objAttribute:Object=tGaphic.attributes;
+							if(objAttribute["QYDM"].toString()==QY_code)
+							{
+								tGaphic.visible=true;
+								return;
+							}					
+						}
+						
+						
+						
+					}
+				}
+			}
+			
+			//是否显示保存企业经度纬度的图标控件
+			public function ImageVisible(EnableBool:Boolean):void
+			{
+//				var tBorderContainer:BorderContainer=	map.infoWindow.content as  BorderContainer;
+//				var tVGroup:VGroup=	tBorderContainer.getElementAt(0) as  VGroup;
+//				var childVgroup:VGroup=tVGroup.getElementAt(0) as VGroup;
+//				var tempHGroup:HGroup=childVgroup.getChildByName("xyHGroup") as  HGroup;
+//				var  imageHGroup:VGroup= tempHGroup.getChildByName("imageHGroup") as VGroup;
+//				var hGroupImage2:HGroup=imageHGroup.getChildByName("hGroupImage2") as HGroup;
+//				var imageSave:Image=hGroupImage2.getChildByName("imageSave") as Image;
+//				imageSave.visible=EnableBool;
+			}
+			
+			//修改浮动窗体的进纬度坐标
+			public  function SetXYCoordate(pPt:MapPoint):void
+			{
+				
+//				var tBorderContainer:BorderContainer = map.infoWindow.content as  BorderContainer;
+//				
+//				var tVGroup:VGroup=	tBorderContainer.getElementAt(0) as  VGroup;
+//				var childVgroup:VGroup=tVGroup.getElementAt(0) as VGroup;			
+//				
+//				var tempHGroup:HGroup=childVgroup.getChildByName("xyHGroup") as  HGroup;
+//				var infoGroup:VGroup= tempHGroup.getChildByName("infoGroup") as VGroup;
+//				
+//				var longitudeGroup:HGroup= infoGroup.getChildByName("longitudeGroup") as HGroup;//经度的控件
+//				
+//				var longitudeText:Text= longitudeGroup.getChildByName("longitude") as Text//经度的控件
+//				longitudeText.text=pPt.x.toFixed(6).toString();
+//				
+//				
+//				var  latitudeGroup:HGroup= infoGroup.getChildByName("latitudeGroup") as HGroup;//纬度的控件
+//				var latitudeText:Text= latitudeGroup.getChildByName("latitude") as Text//纬度的控件
+//				latitudeText.text=pPt.y.toFixed(6).toString();
+				map.infoWindow.show(pPt);
+				
+			}
+
+
+
+		]]>
+	</fx:Script>
+
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	
+	<s:VGroup id="info"  width="230">
+		<s:Label id="info_name" fontFamily="宋体"  fontSize="13" fontWeight="bold" color="black"/>
+		<mx:UIComponent id="info_line"/>
+		<mx:Spacer height="3"/>
+		<s:HGroup>
+			<s:Label width="70"  fontSize="12" fontWeight="bold" text="法人代表："  textAlign="right"/>
+			<s:Label id="info_frdb"  width="150"  fontSize="12" fontWeight="bold"/>
+		</s:HGroup>
+		<s:HGroup>
+			<s:Label width="70" fontSize="12" fontWeight="bold" text="联系人：" textAlign="right"/>
+			<s:Label id="info_lxr"  width="150"  fontSize="12"  fontWeight="bold"/>
+		</s:HGroup>
+		<s:HGroup>
+			<s:Label width="70" fontSize="12"  fontWeight="bold" text="企业地址：" textAlign="right"/>
+			<s:Label id="info_qydi" width="150" fontSize="12" fontWeight="bold"/>
+		</s:HGroup>
+		
+		<mx:UIComponent id="control_line"/>
+		<s:VGroup>
+			<s:HGroup height="25">
+				<s:Label width="0" />
+				<mx:Image id="Linkbtn" toolTip="坐标修改" source="assets/images/yutu/修改坐标.png"
+						  click="Linkbtn_clickHandler(event)" />
+				<mx:Image id="savebtn" toolTip="保存修改" source="assets/images/yutu/保存坐标.png" 
+						  click="savebtn_clickHandler(event)" />
+			</s:HGroup>
+			
+			<s:HGroup>
+				<mx:LinkButton label="一企一档" color="0x000000"  width="70" click="linkbutton1_clickHandler(event)"/>
+				<mx:LinkButton label="在线监测" color="0x000000"  width="70" click="linkbutton2_clickHandler(event)"/>
+				<mx:LinkButton label="实时视频" color="0x000000"  width="70" click="video_clickHandler(event)"  
+							   visible="false"  id="video" />
+			</s:HGroup>
+		</s:VGroup>
+	</s:VGroup>
+	
+</s:Group>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 width="250" height="200"
+		 >
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.viewer.AppEvent;
+			
+			import mx.controls.Alert;
+			import mx.controls.Image;
+			import mx.events.DragEvent;
+			
+			/* import widgets.TrackPlay.ExtendButton;
+			import widgets.TrackPlay.TrackPlayModel; */
+			
+			//传入点要素
+		
+			[Bindable]
+			public var title:String = "";
+			
+			[Bindable]
+			public var content:String = "";
+			
+			
+			public var grachic:Graphic;
+		
+			//动态加载控件组
+			/* public function SetButtonGroup(buttons:Array,imgHeight:Number,imgWidth:Number):void
+			{
+				if(buttons == null || buttons.length<=0)
+					return;
+				else
+				{
+					for each(var buttonExt:ExtendButton in buttons)
+					{
+						var img:Image = new Image();
+						img.height = imgHeight;
+						img.width = imgWidth;
+						img.source = buttonExt.buttonImg;
+						var obj:Object = new Object();
+						obj.functionName = buttonExt.buttonFunction;
+						var strValue:String = "";
+						if(buttonExt.buttonParameters.length>0)
+						{
+							for each(var parameter:String in buttonExt.buttonParameters)
+							{
+								strValue = strValue +grachic.attributes[parameter].toString()+",";
+							}
+							strValue = strValue.substring(0,strValue.length-2);
+						}
+						obj.Value=strValue;
+					
+						img.addEventListener(MouseEvent.CLICK,function(e:MouseEvent){image_clickHandler(e,obj)});
+						
+						buttonGroup.addElement(img);
+					}
+				}
+			} */
+			/* private function  image_clickHandler(event:MouseEvent,obj:Object):void
+			{
+				ExternalInterface.call(obj.functionName,obj.Value);
+			} */
+			
+//			public function SetImageVisible(isVisibleImage:Boolean)
+//			{
+//				this.viewImage.visible = isVisibleImage;
+//				
+//			}
+//			protected function viewImage_clickHandler(event:MouseEvent):void
+//			{
+//				//				Alert.show(idNo+guid);
+//				ExternalInterface.call(videoPicClick, (idNo+guid));
+//			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:VGroup width="250" height="200" 
+			  paddingLeft="10" paddingRight="10"  >
+		<s:HGroup    height="160">
+			<s:VGroup   verticalAlign="top" height="160" width="237">
+				<s:Label id="titleLabel" width="100%"  height="15" fontSize="13" text="{title}"  verticalAlign="top"/>
+				<mx:HRule width="100%"   chromeColor="#FAF7F7"/>
+				<s:TextArea width="100%" lineHeight="20" height="135" text="{content}" 
+							mouseChildren="false" mouseEnabled="true"
+							borderVisible="false"  contentBackgroundAlpha="0"
+							/>
+			</s:VGroup>
+		</s:HGroup>
+		<s:HGroup id="buttonGroup" height="40" >
+			 
+		</s:HGroup>
+		
+		
+	</s:VGroup>	
+	
+</s:Group>

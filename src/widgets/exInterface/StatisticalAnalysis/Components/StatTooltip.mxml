@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Control:StatTooltipContiner xmlns:fx="http://ns.adobe.com/mxml/2009"  
+								  xmlns:s="library://ns.adobe.com/flex/spark" 
+								  xmlns:mx="library://ns.adobe.com/flex/mx" 
+								  xmlns:radia="com.mapUni.FunctionClass.MapLevelRenderer.*" 
+								  xmlns:Control="widgets.exInterface.StatisticalAnalysis.Control.*"
+								  creationComplete="init()"
+								  >
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.ViewerContainer;
+			
+			import widgets.exInterface.StatisticalAnalysis.Control.StatEvent;
+			
+			private function init():void
+			{
+				ViewerContainer.addEventListener(StatEvent.STAT_DATA_RENDERER_TOOLTIP, onTooltipDataSend);
+			}
+				
+			
+			private function onTooltipDataSend(event:StatEvent):void
+			{
+				var tooltipData:Object = event.data;
+				
+				labelRow1.text = tooltipData.valueName;
+				labelRow2.text = tooltipData.regionName;
+				labelRow3.text = tooltipData.value;
+			}
+			
+			
+		]]>
+	</fx:Script>
+	
+	<s:BorderContainer width="150" height="100" 
+					   backgroundAlpha="0.65" color="0x0000ff" borderVisible="false"
+					   cornerRadius="10"
+					   >
+		<s:layout>
+			<s:VerticalLayout paddingLeft="15" paddingTop="15" gap="3" />
+		</s:layout>
+		<s:Label id="labelRow1" text="监测项名称" height="20" verticalAlign="middle" />
+		<s:Label id="labelRow2" text="地市名" height="20" verticalAlign="middle" />
+		<s:Label id="labelRow3" text="检测值" height="20" verticalAlign="middle" />
+	</s:BorderContainer>
+	
+</Control:StatTooltipContiner>

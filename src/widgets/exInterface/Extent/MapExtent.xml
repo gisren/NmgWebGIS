@@ -1,0 +1,35 @@
+<?xml version="1.0" ?>
+<configuration>
+	<externalInterface>
+	
+		<!--  
+		
+			名称：设置地图的显示区域
+	    	
+	    	接口：MapExtent
+	    	
+	    	参数：JsonData:String  数据集（json格式的字符串）
+	    	
+	    	数据结构：	{
+					    	setExtent:{ enable:_,  Xmin:_,  Ymin:_, Xmax:_,  Ymax:_}, 
+							searchExtent:{ enable:_,  layerName:_,  searchWhere:_}
+						}
+	    	
+	    	数据说明：	整个json字符串为一个对象，对象中包含下列属性：
+	    	
+	    				setExtent：直接设置要显示区域。enable为是否要使用这个属性；Xmin、Ymin、Xmax、Ymax这四个属性分别为地图要显示区域的左上角坐标值和右下角坐标值。
+	    				
+		    			searchExtent：根据查询出的对象来确定要显示的区域。enable为是否要使用这个属性；layerName、searchWhere这两个属性值用来查询要显示的对象，地图会自动缩放到查询到的对象所在地图上的位置。
+		    			
+	    				
+	    	示例：  JsonData = "{"searchExtent":{"layerName":"js_市界","searchWhere":"Name = '南京市'","enable":true},"setExtent":{"Xmax":118.738793557,"Ymax":32.0527799120504,"Ymin":32.0489906203987,"enable":true,"Xmin":118.7326426503}}";
+					MapPoint(JsonData)
+	    	
+		 	备注：	setExtent 和 searchExtent 实现同一个功能，当他们的enable属性都为true时，系统将优先执行setExtent。
+		 	
+		-->
+		<exSetExtent>MapExtent</exSetExtent>
+		
+	</externalInterface>
+	
+</configuration>

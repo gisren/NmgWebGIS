@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" creationComplete="init()">
+	<mx:Script>
+		<![CDATA[
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.CheckBox;
+			import mx.controls.List;  
+			
+			private var _seletedItems:Array;   
+			private var list:List;   
+			public var comboData:ArrayCollection;   
+			//public var Width:Number=150;
+			
+			private function init():void  
+			{    
+			}   
+			
+			public function set seletedItems(value:Array):void  
+			{   
+				_seletedItems = value;
+				if(list)   
+				{   
+					var items:ArrayCollection = list.dataProvider as ArrayCollection;   
+					for each(var obj:Object in items)   
+					{   
+						for each(var item:Object in _seletedItems){
+                              if(item["value"]==obj["value"]){
+								  obj["checked"]= item["checked"];
+							  }
+						}
+					}   
+					showSelected();   
+				}   
+			}   
+			
+			public function get seletedItems():Array   
+			{   
+				if(list)   
+				{
+					var items:ArrayCollection = list.dataProvider as ArrayCollection;   
+					var seletedItems:Array = [];   
+					for each(var obj:Object in items)   
+					{   
+						if(obj["checked"] && "" != obj["value"])   //将选中的压入
+						{   
+							seletedItems.push(obj);   
+						}   
+					}   
+					_seletedItems = seletedItems;   
+				}   
+				return _seletedItems;   
+			}   
+			
+			public function FillData():void  
+			{   
+				if(null != comboData)   
+				{   
+					var dataSource:ArrayCollection = new ArrayCollection();   
+					for each(var item:Object in comboData)   
+					{   
+						item.checked = false;
+						dataSource.addItem(item);   
+					}   
+					list = new List();   
+					list.dataProvider = dataSource;   
+					list.itemRenderer = new ClassFactory(CheckBoxItemRenderer);
+					list.rowCount = dataSource.length;   
+					list.width = width;   
+					addPopUp();   
+					showSelected();   
+				}   
+			}   
+			
+			public function selectedChanged(e:MouseEvent):void{
+				var vvv:Object = e.currentTarget;
+			}
+			
+			private function showSelected():void  
+			{   
+				if(list)   
+				{   
+					var items:ArrayCollection = list.dataProvider as ArrayCollection;   
+					var seletedItems:Array = [];   
+					
+					if(items != null && items.length == 1)
+					{
+						var item:Object = items[0];
+						item["checked"] = true;
+					}
+					for each(var obj:Object in items)   
+					{   
+						if((obj["checked"] && "" != obj["value"])|| items.length == 1 )
+						{   
+							seletedItems.push(obj["label"]);   
+						} 
+						
+					}   
+					multiCombo.label = seletedItems.length > 0?seletedItems.toString():"请选择";   
+					multiCombo.toolTip = multiCombo.label;   
+				}   
+			}   
+			
+			private function addPopUp(e:MouseEvent=null):void  
+			{   
+				if(null != list)   
+				{   
+					var can:Canvas = new Canvas();   
+					can.addChild(list);
+					multiCombo.popUp = can;   
+				}   
+			}  
+			
+		]]>
+	</mx:Script>
+	
+	<mx:PopUpButton id="multiCombo" label="请选择"  width="100%" textAlign="left" 
+					fontWeight="normal" openAlways="true" close="showSelected()" />
+	
+</mx:Canvas>

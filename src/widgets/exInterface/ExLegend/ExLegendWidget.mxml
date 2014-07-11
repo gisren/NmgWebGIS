@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:viewer="com.esri.viewer.*"
+				   xmlns:ExLegend="widgets.exInterface.ExLegend.*"  
+				   widgetConfigLoaded="init()">
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.utils.JSON;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			import com.mapUni.BaseClass.MapUni;
+			
+			import flash.utils.setTimeout;
+			
+			import mx.managers.PopUpManager;
+			
+			
+			/**
+			 * 成功获取配置文件 
+			*/
+			private function init():void
+			{
+				if(configXML)
+				{
+					var exLegendEditName:String = configXML.externalInterface.exLegendEidt;
+					
+					ExternalInterface.addCallback(exLegendEditName, doEditLegend);
+					
+//					test();
+				}
+			}
+			
+			
+			/**
+			 * 测试 
+			*/
+			private function test():void
+			{
+				
+			    MapUni.errorWindow("asdf");
+				
+				setTimeout(function():void{MapUni.errorWindow("a;sdlkfja;sdlkjf");},5000);
+				
+				
+				var data:Array =
+					[
+						{
+							addLegend:{enable:true, legendName:"测试图例组asdfasdfsdfdf1", legendItem:[{symbol:0xff0022, label:"测试阿萨德飞阿萨德飞阿萨德飞阿萨德飞阿萨德飞" },{symbol:"assets/yutuImages/externalInterfaceIcon/污染源企业.png",label:"污染源"}]}
+						},
+						{
+							callLayerLegend:{enable:true, legendName:"测试图例组2", layerName:"县界"}
+						}
+					];
+				
+				var data2:Array =
+					[
+						{
+							addLegend:{enable:true, legendName:"测试图例阿萨德发放阿萨德飞组3"}
+						},
+						{
+							deleteLegend:{enable:true, legendName:"测试图例组1"}
+						}
+					];
+				
+				var str:String = JSON.encode(data);
+				
+				setTimeout(doEditLegend, 5000, data);
+
+//				setTimeout(doEditLegend, 10000, data2);
+				
+			}
+			
+			
+			/**
+			 * 遍历图例指令组
+			*/
+			private function doEditLegend(legendAry:Array):void
+			{
+				for(var i:int=0; i<legendAry.length; i++)
+				{
+					var legendObj:Object = legendAry[i];
+					
+					analysisLegend(legendObj);
+				}
+			}
+			
+			
+			/**
+			 * 解析指令参数 
+			*/
+			private function analysisLegend(legendObj:Object):void
+			{
+				var addLegendObj:Object = legendObj["addLegend"];
+				var LayerLegendObj:Object = legendObj["callLayerLegend"];
+				var deleteLegendObj:Object = legendObj["deleteLegend"];
+				var clearLegendObj:Object = legendObj["clearLegend"];
+				
+				if(addLegendObj)
+				{
+					addLegend(addLegendObj);
+				}
+				
+				if(LayerLegendObj)
+				{
+					addLayerLegend(LayerLegendObj);
+				}
+				
+				if(deleteLegendObj)
+				{
+					deleteLegend(deleteLegendObj);
+				}
+				
+				if(clearLegendObj)
+				{
+					clearLegend(clearLegendObj);
+				}
+			}
+			
+			
+			/**
+			 * 清空所有图例
+			*/
+			private function clearLegend(clearLegendObj:Object):void
+			{
+				if(clearLegendObj["enable"] == true || clearLegendObj["enable"] == "true")
+				{
+					var legParaObj:Object = new Object();
+					legParaObj.operate = "clear";
+					ViewerContainer.dispatchEvent(new AppEvent(AppEvent.LEGEND_EDIT, legParaObj));
+				}
+			}
+			
+			
+			/**
+			 * 删除指定图例
+			*/
+			private function deleteLegend(deleteLegendObj:Object):void
+			{
+				var legendName:String = deleteLegendObj["legendName"];
+				
+				if(legendName && deleteLegendObj["enable"] && deleteLegendObj["enable"] != "false")
+				{
+					editLegend("delete", legendName);
+				}
+			}
+			
+			
+			/**
+			 * 掉取图层自带图例 
+			*/
+			private function addLayerLegend(LayerLegendObj:Object):void
+			{
+				var legendName:String = LayerLegendObj["legendName"];
+				var layerName:String = LayerLegendObj["layerName"];
+				
+				if(legendName && LayerLegendObj["enable"] && LayerLegendObj["enable"] != "false")
+				{
+					editLegend("add", legendName, layerName);
+				}
+			}
+			
+			
+			/**
+			 * 添加图例 
+			*/
+			private function addLegend(addLegendObj:Object):void
+			{
+				var legendName:String = addLegendObj["legendName"];
+				var legendItemAry:Array = addLegendObj["legendItem"];
+				
+				var symbolAry:Array = new Array(); 
+				var labelAry:Array = new Array();
+				
+				if(legendItemAry)
+				{
+					for(var i:int=0; i<legendItemAry.length; i++)
+					{
+						var legendItemObj:Object =  legendItemAry[i];
+						
+						symbolAry.push(legendItemObj["symbol"]);
+						labelAry.push(legendItemObj["label"]);
+					}
+				}
+				
+				if(legendName && addLegendObj["enable"] && addLegendObj["enable"] != "false")
+				{
+					editLegend("add", legendName, null, symbolAry, labelAry);
+				}
+			}
+			
+			
+			/**
+			 * 编辑图例 
+			*/
+			private function editLegend(operate:String, legendName:String, layerName:String=null, 
+											legendSymbolSource:Array=null, legendLabel:Array=null):void
+			{
+				
+				var legParaObj:Object = new Object();
+				legParaObj.operate = operate;
+				legParaObj.legendName = legendName;
+				legParaObj.layerName = layerName;
+				legParaObj.legendSymbolSource = legendSymbolSource;
+				legParaObj.legendLabel = legendLabel;
+				
+				ViewerContainer.dispatchEvent(new AppEvent(AppEvent.LEGEND_EDIT, legParaObj));
+				
+			}
+
+
+		]]>
+	</fx:Script>
+	
+</viewer:BaseWidget>

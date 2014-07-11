@@ -1,0 +1,62 @@
+<configuration>
+	<polluteUrl id="污染源图层" nameField="QYMC" codeField="QYDM">
+		http://218.60.147.63/ArcGIS/rest/services/LNMap/MapServer/87
+	</polluteUrl>
+	<regionalUrl id="省级" nameField="name" codeField="CODE">
+		http://218.60.147.63/ArcGIS/rest/services/LNMap/MapServer/85
+	</regionalUrl>
+	<cityUrl id="市级" nameField="name" codeField="code">
+		http://218.60.147.63/ArcGIS/rest/services/LNMap/MapServer/86
+	</cityUrl>
+    <countyUrl id="县级" nameField="name" codeField="code">
+		http://218.60.147.63/ArcGIS/rest/services/LNMap/MapServer/78
+	</countyUrl>
+	<videoUrl>
+	    http://223.100.253.205/video.htm?m=0&s=0&t=0&uid=080101300001&enterprise_code=
+	</videoUrl>
+	<webservice>
+	    http://218.60.147.63/LiaoNing/WebService/ArcGisDataWebService.asmx?wsdl                       
+	</webservice>
+	<companyClassIcon>
+	    assets/yutuImages/companyClassify/
+	</companyClassIcon>
+	
+	
+	<industrys>
+	    <industryCatogry code="" name="全部行业"/>
+	    <industryCatogry code="A03" name="畜牧"/>
+	    <industryCatogry code="A04" name="渔业"/>
+	    <industryCatogry code="H6361" name="煤炭"/>
+	    <industryCatogry code="B07" name="石油"/>
+	    <industryCatogry code="C14" name="食品"/>
+	    <industryCatogry code="C17" name="纺织"/>
+	    <industryCatogry code="C22" name="造纸"/>	    
+	    <industryCatogry code="C362" name="化工"/>
+	    <industryCatogry code="C27" name="医药"/>
+	    <industryCatogry code="C3591" name="钢铁"/>
+	    <industryCatogry code="C34" name="机械加工"/>
+	    <industryCatogry code="D44" name="电力"/>
+	    <industryCatogry code="I67" name="餐饮"/>  
+	    <industryCatogry code="C33" name="有色金属"/>
+<!--	    <industryCatogry code="M" name="科学研究和综合技术服务业"/>  -->
+<!--	    <industryCatogry code="S" name="国家机关、政党机关和社会团体"/>  -->
+<!--	    <industryCatogry code="" name="其他行业"/>   -->
+	</industrys>
+	
+	<!--http://10.1.8.79-->
+  <InterFaceMethods>
+    <method name="" id=""></method>
+    <method name="" id=""></method>
+    <method name="" id=""></method>
+    <method name="" id=""></method>
+    <method name="" id=""></method>
+    <method name="" id=""></method>
+  </InterFaceMethods>
+</configuration>
+
+
+
+
+
+
+

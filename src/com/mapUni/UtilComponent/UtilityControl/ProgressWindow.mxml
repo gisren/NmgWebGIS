@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml"
+		   width="283"
+		   height="89"
+		   borderColor="#4C6C00"
+		   borderStyle="solid"
+		   cornerRadius="4" backgroundColor="#000000" backgroundAlpha="0.8">
+	<mx:Script>
+		<![CDATA[
+			import mx.managers.PopUpManager;
+			
+			[Bindable]public var MSG:String;
+			
+			import org.osmf.events.TimeEvent;
+			
+			private var timer:Timer=new Timer(100);//计时器，用于控制进度条的显示
+			
+			private function init():void{
+				//timer=new Timer(100);
+				timer.addEventListener(TimerEvent.TIMER,timer_timer);
+				//timer.addEventListener(TimerEvent.TIMER_COMPLETE,timer_timer_complete);
+			}			
+			
+			private function timer_timer(evt:TimerEvent):void{
+				
+				progress1.setProgress(progress1.value+1,100);
+				if(progress1.value==progress1.maximum)resetProgressBar();
+			}
+			
+		 
+			
+			public function play():void{
+				timer.reset();
+				timer.start();
+			}
+			
+			
+			
+			protected function stop():void{
+				
+				resetProgressBar();
+				timer.stop();
+				
+			}
+			
+            /* 
+			  重置进度条 
+			*/			
+			private function resetProgressBar():void{
+				progress1.setProgress(0,100);
+				progress1.scaleX=1.0;
+				progress1.alpha=1;
+			}
+			
+			private function closeMe():void
+			{
+				stop();
+				PopUpManager.removePopUp(this);
+			}
+		]]>
+	</mx:Script>
+	<mx:Style>
+		.close
+		{
+			cornerRadius: 0;
+			borderColor: #FFFFFF;
+			themeColor: #FFFFFF;
+			fillAlphas: 0.75, 0.75, 0.5, 0.5;
+			fillColors: #000000, #000000;
+			color: #9E9E9E;
+			fontSize: 12;
+			paddingTop: 0;
+			paddingLeft: 0;
+			paddingBottom: 0;
+			paddingRight: 0;
+			leading: 0;
+			fontWeight: normal;
+			textRollOverColor: #FFFFFF;
+		}
+	</mx:Style>
+	
+	<mx:ProgressBar x="10" y="54.5" width="261" trackHeight="14" visible="true"
+					minimum="0" mode="manual" maximum="100" id="progress1" creationComplete="init()"
+					labelPlacement="center"  direction="right"
+					fontSize="12" fontWeight="normal"  />
+	<mx:HRule x="10.5" y="36.5" width="261" strokeColor="#969696" alpha="0.37"/>
+	<mx:Label x="39.75"
+			  y="8.4"
+			  text="分析过程"
+			  fontSize="12"
+			  color="#FFF600" fontWeight="bold"/>
+	<mx:Button x="253" y="6" label="X" width="20" labelPlacement="left" toolTip="关闭"
+			   styleName="close" height="20" cornerRadius="4" fontFamily="Verdana" click="closeMe()"/>
+	<mx:Image x="10" y="9.5" source="assets/images/yutu/analyst.png" width="25" height="20"/>
+</mx:Canvas>

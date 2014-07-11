@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" 
+		   cornerRadius="5"
+		   width="242" height="58" 
+		   verticalScrollPolicy="off"
+		   horizontalScrollPolicy="off" 
+		   resize="onResize()" 
+		   creationComplete="onCreateComplete()"
+		   >
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.controls.*;
+			import mx.core.mx_internal;
+			import mx.formatters.*;
+			
+		    [Bindable]  
+			public var pStartDate:Date=new Date();
+			 
+			[Bindable]  
+			public  var pEndDate:Date=new Date();
+			 
+			private function onResize():void
+ 			{
+				/* if(theDate.width<=0 && this.width==this.measuredWidth)
+				{
+					return;
+				} 
+				if(this.width>0 && this.measuredWidth>0)
+  				{
+					theDate.width+=this.width-this.measuredWidth;
+				}	 */	
+			}
+			
+			public function onCreateComplete():void
+            {
+				//onResize();
+				
+				var nowDate:Date = new Date(); 
+				 
+				var fr:DateFormatter=new DateFormatter();
+                fr.formatString="YYYY-MM-DD";
+				theStartDate.text = fr.format(nowDate); 
+				
+				nowDate.setDate(nowDate.getDate() - 1);
+				theEndDate.text = fr.format(nowDate); 
+				
+                var pDate:Date=new Date();
+				theStartHour.value=pDate.getHours();
+				theEndHour.value = pDate.getHours();
+			}
+			
+			
+			public function getStartDateTime():Date
+			{
+				var selectedTime:Date = new Date();
+				
+				if(this.theStartDate.selectedDate)
+				{
+					selectedTime = this.theStartDate.selectedDate;
+				}
+				
+				var selectedHour:Number = this.theStartDate.value as Number;
+				selectedTime.hours = selectedHour;
+				return selectedTime;
+			} 
+			
+			
+			public function getEndDateTime():Date
+			{
+				var selectedTime:Date = new Date();
+				
+				if(this.theEndDate.selectedDate)
+				{
+					selectedTime = this.theEndDate.selectedDate;
+				}
+				
+				var selectedHour:Number = this.theEndHour.value;
+				selectedTime.hours = selectedHour;
+				return selectedTime;
+			}
+			
+			
+			private function checkDate(dateType:Number):void
+			{
+				var startDate:Date = getStartDateTime();
+				var endDate:Date = getEndDateTime();
+				
+				if(startDate > endDate)
+				{
+					if(dateType == 1)
+					{
+						beginTime.errorString = "开始时间不能大于结束时间";
+					}
+					else
+					{
+						endTime.errorString = "结束时间不能小于开始时间";
+					}
+				}
+				else
+				{
+					beginTime.errorString = "";
+					endTime.errorString = "";
+				}
+			}
+			
+			
+		]]>
+	</mx:Script>	
+	
+	<mx:Canvas id="DateTimeCanvas"  height="100%" width="100%" >
+		<mx:Label  text="开始时间：" y="6" x="4" />
+		<mx:HBox id="beginTime"  cornerRadius="3"
+				 x="65" y="3"
+				 borderStyle="solid"  borderColor="#7DA600"  
+				 horizontalGap="3" verticalAlign="middle"
+				 >
+			<mx:DateField id="theStartDate" yearNavigationEnabled="true"    
+						  dayNames="['日','一','二','三','四','五','六']" 
+						  monthNames="['一','二','三','四','五','六','七','八','九','十','十一','十二']"  
+						  formatString="YYYY-MM-DD" width="100" color="0xFFFFFF"
+						  change="checkDate(1)"
+						  />
+			<mx:NumericStepper minimum="0" maximum="23" stepSize="1" maxChars="2" id="theStartHour" width="45"
+							   change="checkDate(1)"
+							   />
+			<mx:Label text="时"/>
+		</mx:HBox>
+		
+		<mx:Label  text="结束时间：" y="36" x="4" />
+		<mx:HBox id="endTime"  x="65" y="32"  
+				 borderStyle="solid"  borderColor="#7DA600" 
+				 horizontalGap="3" verticalAlign="middle"
+				 >
+			<mx:DateField id="theEndDate" yearNavigationEnabled="true"    
+						  dayNames="['日','一','二','三','四','五','六']" 
+						  monthNames="['一','二','三','四','五','六','七','八','九','十','十一','十二']"  
+						  formatString="YYYY-MM-DD" width="100" color="0xFFFFFF"
+						  change="checkDate(2)"
+						  />
+			<mx:NumericStepper minimum="0" maximum="23" stepSize="1" maxChars="2" id="theEndHour" width="45"
+							   change="checkDate(2)"
+							   />
+			<mx:Label text="时"/>
+		</mx:HBox>
+	</mx:Canvas>
+	
+</mx:Canvas>
+

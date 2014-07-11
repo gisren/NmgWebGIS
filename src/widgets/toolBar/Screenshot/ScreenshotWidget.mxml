@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2010 中科宇图天下科技有限公司 环保事业部
+//
+//	屏幕截图
+// 
+// 
+// Author：LiuXL
+// Date：2012.04.17
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:viewer="com.esri.viewer.*"
+				   initialize="init()" 
+				   width="100%" height="100%"
+				   >
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			import com.esri.viewer.WidgetStates;
+			import com.mapUni.BaseClass.MapUni;
+			import com.mapUni.FunctionClass.shotTool.ShotEvent;
+			import com.mapUni.FunctionClass.shotTool.ShotResult;
+			import com.mapUni.FunctionClass.shotTool.UF_DrawBox;
+			import com.mapUni.FunctionClass.shotTool.UF_ShotTool;
+			
+			import flash.utils.setTimeout;
+			
+			import mx.core.FlexGlobals;
+			import mx.core.UIComponent;
+			import mx.events.EffectEvent;
+			import mx.printing.FlexPrintJob;
+			import mx.printing.FlexPrintJobScaleType;
+			
+			import spark.components.Group;
+			import spark.effects.Fade;
+			import spark.primitives.BitmapImage;
+			
+			
+			//文件上传下载工具
+			private var fileReference:FileReference = new FileReference();
+			
+			//截屏工具
+			private var shotTool:UF_ShotTool;
+			
+			//截图结果文件
+			private var shotResult:ShotResult;
+			
+			//主控件
+			private var appCompoent:UIComponent = new UIComponent();
+			
+			private var fade:Fade = new Fade();
+			
+			
+			private function init():void
+			{
+				appCompoent = FlexGlobals.topLevelApplication as UIComponent;
+				
+				fileReference.addEventListener(Event.COMPLETE, saveComplete);
+				
+				canbox.stage.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
+			}
+			
+			
+			/**
+			 * 激活截图工具 
+			*/
+			private function activateShotTool():void
+			{
+				shotTool = new UF_ShotTool(canbox, appCompoent);
+				shotTool.activate();
+				shotTool.addEventListener(ShotEvent.SHOT_COMPLETE, onShotComplete);
+				shotTool.addEventListener(ShotEvent.SHOT_ERROR, onShotError);
+				
+				showEscToolTipBor();
+			}
+			
+			
+			/**
+			 * 显示退出提示  
+			*/
+			private function showEscToolTipBor():void
+			{
+				EscToolTipBor.visible = true;
+				EscToolTipBor.includeInLayout = true;
+				EscToolTipBor.alpha = 1;
+				EscToolTipBor.x = appCompoent.width/2 - EscToolTipBor.width/2;
+				EscToolTipBor.y = appCompoent.height*0.382 - EscToolTipBor.height/2;
+				canbox.addChild(EscToolTipBor);
+				
+				setTimeout(fadeEffect, 1000, EscToolTipBor);
+			}
+			
+			
+			/**
+			 * 渐变淡出效果
+			*/
+			private function fadeEffect(target:Object):void
+			{
+				fade = new Fade(target);
+				fade.alphaFrom = 1;
+				fade.alphaTo = 0;
+				fade.duration = 3000;
+				fade.addEventListener(EffectEvent.EFFECT_END, onEscEffectEnd);	
+				fade.play();
+			}
+			
+			
+			/**
+			 * 监听退出提示框的淡出效果的完成
+			*/
+			private function onEscEffectEnd(event:EffectEvent):void
+			{
+				EscToolTipBor.visible = false;
+				EscToolTipBor.includeInLayout = false;
+				EscToolTipBor.alpha = 1;
+			}
+			
+			
+			/**
+			 * 监听键盘事件 
+			*/
+			private function onKeyDown(event:KeyboardEvent):void
+			{
+				if(event.keyCode == 27)
+				{
+					fade.end();
+					clear();
+				}
+			}
+			
+			
+			/**
+			 * 监听截图完成 
+			*/
+			private function onShotComplete(event:ShotEvent):void
+			{
+				shotResult = event.data as ShotResult;
+				
+				defineShotbarLocated();
+			}
+			
+			
+			/**
+			 * 定义截图工具栏的位置
+			*/
+			private function defineShotbarLocated():void
+			{
+				if(shotResult)
+				{
+					var rect:Rectangle  = shotResult.shotRect;
+					if(rect)
+					{
+						selecteRect.x = rect.x + rect.width - selecteRect.width;
+						selecteRect.y = rect.y + rect.height + 5;
+						selecteRect.visible = true;
+						selecteRect.includeInLayout = true;
+						
+						//如果截屏范围太过靠下，每有空间来显示截图工具条时,将工具条挪到上面
+						if((selecteRect.y + selecteRect.height) > appCompoent.height)
+						{
+							selecteRect.y = rect.y + 5;
+							
+							//如果截屏范围太窄，盛不下截图工具条时，将工具条挪到右面
+							if(selecteRect.width > rect.width)
+							{
+								selecteRect.x = rect.x + rect.width + 5;
+								selecteRect.y = rect.y;
+								
+								//如果截屏范围太过靠右，每有空间来显示截图工具条时，将工具条挪到左面
+								if((rect.x + rect.width + 5 + selecteRect.width) > appCompoent.width)
+								{
+									selecteRect.x = rect.x - selecteRect.width - 5;
+								}
+							}
+						}
+						
+						canbox.addChild(selecteRect);
+					}
+					else
+					{
+						reSelecteRect();
+					}
+				}
+				else
+				{
+					reSelecteRect();
+				}
+			}
+			
+			
+			/**
+			 * 监听截图报错 
+			*/
+			private function onShotError(event:ShotEvent):void
+			{
+				var error:Error = event.data as Error;
+				MapUni.errorWindow(error.toString());
+			}
+			
+			
+			/**
+			 * 保存图片
+			*/
+			private function saveImg():void
+			{
+				var formateImage:ByteArray = shotResult.shotImage;
+				
+				fileReference.save(formateImage, "未命名.png");
+			}
+			
+			
+			/**
+			 * 保存完成 
+			*/
+			private function saveComplete(event:Event):void
+			{
+				clear();
+			}
+			
+			
+			/**
+			 * 重新选择截图区域 
+			*/
+			private function reSelecteRect():void
+			{
+				shotTool.reSelectRect();
+				
+				clear(true, false, false);
+			}
+			
+			
+			/**
+			 * 打印截图区域
+			*/
+			private function onPrivate():void
+			{
+				var printJob:FlexPrintJob = new FlexPrintJob();
+				printJob.printAsBitmap = false;
+				if(printJob.start())
+				{
+					var printImgBitmapData:BitmapData = shotResult.shotBitmapData;
+					var rect:Rectangle  = shotResult.shotRect;
+					
+					if(printImgBitmapData)
+					{
+						var h:Number = printJob.pageHeight;
+						var w:Number = printJob.pageWidth;
+						
+						var printImage:BitmapImage = new BitmapImage();
+						printImage.smooth = true;
+						printImage.source = printImgBitmapData;
+						
+						var printGroup:Group = new Group();
+						printGroup.styleName = "PrintBox";
+						printGroup.width = rect.width;
+						printGroup.height = rect.height;
+						printGroup.addElement(printImage);
+						canbox.addChild(printGroup);
+						
+						printJob.addObject(printGroup, FlexPrintJobScaleType.SHOW_ALL);
+						printJob.send();
+						
+						canbox.removeChild(printGroup);
+					}
+					
+					clear();
+				}
+			}
+			
+			
+			/**
+			 * 删除当前选择的截图区域 
+			*/
+			private function onDeleteRect():void
+			{
+				clear();
+			}
+			
+			
+			/**
+			 * 清空 
+			 * 
+			 * @param clearRect 清除选择框
+			 * @param deactivate 清除截图背景
+			 * @param closedWidget 关闭模块
+			*/
+			private function clear(clearRect:Boolean=true, deactivate:Boolean=true, closedWidget:Boolean=true):void
+			{
+				if(clearRect)
+				{
+					selecteRect.visible = false;
+					selecteRect.includeInLayout = false;
+					canbox.removeAllChildren();
+				}
+				
+				if(deactivate)
+					shotTool.deactivate();
+				
+				if(closedWidget)
+					notifysStateChanged(this.widgetId,WidgetStates.WIDGET_CLOSED);
+			}
+			
+			
+			/**
+			 * 改变模块状态
+			 * 关闭模块 
+			*/
+			private function notifysStateChanged(_widgetId:Number,widgetState:String):void
+			{
+				var data:Object =
+					{
+						id: _widgetId,
+						state: widgetState
+					};
+				ViewerContainer.dispatchEvent(new AppEvent(AppEvent.WIDGET_STATE_CHANGED, data));
+			}
+			
+			
+			/**
+			 * 监听打开模块 
+			*/
+			private function onWidgetOpen():void
+			{
+				activateShotTool();
+			}
+			
+			
+			/**
+			 * 监听关闭模块 
+			*/
+			private function onWidgetClosed():void
+			{
+				clear(true, true, false);
+			}
+
+		]]>
+	</fx:Script>
+	
+	<fx:Style>
+		@namespace s "library://ns.adobe.com/flex/spark";
+		@namespace mx "library://ns.adobe.com/flex/mx";
+		@namespace viewer "com.esri.viewer.*";
+		
+		.PrintBox
+		{
+			color: #000000;
+		}
+		
+	</fx:Style>
+	
+	<mx:Canvas id="canbox" backgroundColor="#ff0000" backgroundAlpha="0.0001"
+			   width="100%" height="100%" x="0" y="0"  />
+	 
+	<s:BorderContainer id="EscToolTipBor" horizontalCenter="0" 
+					   width="600" height="60" 
+					   backgroundAlpha="0.75" backgroundColor="#CEE7F4" cornerRadius="30"
+					   mouseEnabled="false" mouseChildren="false"
+					   visible="false" includeInLayout="false"
+					   >
+		<s:layout>
+			<s:HorizontalLayout horizontalAlign="center" verticalAlign="middle" />
+		</s:layout>
+ 		<s:Label text="按 Esc 退出截屏功能。" color="#000000"  fontSize="20" fontWeight="bold"/>
+	</s:BorderContainer>
+		
+	<s:BorderContainer id="selecteRect" backgroundAlpha="0.75" backgroundColor="#CEE7F4" borderColor="#2D91CC"
+					   height="30" width="110"
+					   visible="false" includeInLayout="false">
+		<s:layout>
+			<s:HorizontalLayout gap="5" horizontalAlign="center" verticalAlign="middle"/>
+		</s:layout>
+		<mx:Image id="save" width="20" height="20" smoothBitmapContent="true" source="assets/images/edit_submit.png" toolTip="保存" click="saveImg()"/>
+		<mx:Image id="print" width="20" height="20" smoothBitmapContent="true" source="assets/images/i_print.png" toolTip="打印" click="onPrivate()"/>
+		<mx:Image id="reSelect" width="20" height="20" smoothBitmapContent="true" source="assets/yutuImages/widgetIcon/retry.png" toolTip="重新选择" click="reSelecteRect()" />
+		<mx:Image id="deleteRect" width="20" height="20" smoothBitmapContent="true" source="assets/yutuImages/widgetIcon/delete.png" toolTip="删除" click="onDeleteRect()" />
+	</s:BorderContainer>
+	
+	<viewer:WidgetTemplate open="onWidgetOpen()" closed="onWidgetClosed()" visible="false" includeInLayout="false" />
+	
+</viewer:BaseWidget>

@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:viewer="com.esri.viewer.*"
+				   xmlns:flexiframe="com.google.flexiframe.*"
+				   creationComplete="init()"
+				   widgetConfigLoaded="onConfigLoad()"
+				   >
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.FeatureSet;
+			import com.esri.ags.Graphic;
+			import com.esri.ags.geometry.Extent;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.geometry.Multipoint;
+			import com.esri.ags.symbols.PictureMarkerSymbol;
+			import com.esri.ags.tasks.QueryTask;
+			import com.esri.ags.tasks.supportClasses.Query;
+			
+			import mx.controls.Alert;
+			import mx.events.ResizeEvent;
+			import mx.rpc.AsyncResponder;
+			//三维测试graphiclayer hw0724
+			private var layerXML1:XML;
+			private var mapLabel1:String;
+			private var layerName1:String;
+			private var nameField1:String;
+			private var layerUrl1:String;
+			public var threeDGraphicLayer:GraphicsLayer=new GraphicsLayer();
+			private var JZWgraLayer:GraphicsLayer = new GraphicsLayer();
+			private function onGraClick(event:MouseEvent):void
+			{
+				var mp:MapPoint=event.target.mapPoint;
+				var arr:Array=new Array();
+				arr.push(mp.x);
+				arr.push(mp.y);
+//				this.map.extent=new Extent(mp.x - 0.001, mp.y - 0.001, mp.x + 0.001, mp.y + 0.001, this.map.spatialReference);
+//				map.centerAt(mp);
+				iframe.callIFrameFunction("flyto", arr);
+			}
+			private function searchFactories(urlLayer:String,namefield:String):void
+			{
+				var querytask:QueryTask=new QueryTask();
+				querytask.url=urlLayer;
+				querytask.useAMF=false;
+				var que:Query=new Query();
+				que.where="1=1";
+				que.returnGeometry=true;
+				que.outFields=["*"];
+				querytask.execute(que, new AsyncResponder(onresult, onfault));
+				function onresult(featureset:FeatureSet, token:Object=null):void
+				{
+					var ext:Extent=new Extent();
+					var numExt:int=0;
+					for each (var gra:Graphic in featureset.features)
+					{
+						var picsym:PictureMarkerSymbol=new PictureMarkerSymbol();
+						[Embed(source='assets/yutuImages/img/污水处理厂40.png')]
+						var picEmbeded:Class;
+						picsym.width=20;
+						picsym.height=20;
+						picsym.source=picEmbeded;
+						gra.symbol=picsym;
+						threeDGraphicLayer.add(gra);
+						gra.toolTip=gra.attributes[namefield].toString();
+						gra.addEventListener(MouseEvent.MOUSE_OVER, onMouseOver);
+						gra.addEventListener(MouseEvent.MOUSE_OUT, onMouseOut);
+						//						(gra.geometry as Multipoint).points[0]
+						var multipoint:Multipoint=gra.geometry as Multipoint;
+						var exttemp:Extent=new Extent(multipoint.points[0].x - 0.0001, multipoint.points[0].y - 0.0001, multipoint.points[0].x + 0.0001, multipoint.points[0].y + 0.0001, map.spatialReference);
+						//						twoD_map.extent  = ext.union(ext);
+						if (numExt == 0)
+						{
+							ext=exttemp;
+						}
+						else
+						{
+							ext=ext.union(exttemp);
+						}
+						numExt++;
+					}
+					map.extent=ext;
+					
+				}
+				function onfault(info:Object, token:Object=null):void
+				{ 
+				}
+				function onMouseOver(e:MouseEvent):void
+				{
+					Mouse.cursor=MouseCursor.BUTTON;
+				}
+				function onMouseOut(e:MouseEvent):void
+				{
+					Mouse.cursor=MouseCursor.AUTO;
+				}
+			}
+			private var time:Timer=new Timer(20, 0);
+			private function onTimeUp(e:TimerEvent):void
+			{
+				this.iframe.callIFrameFunction("callflex", null, getJZW);
+			}
+			//获得三维传过来的关键字，然后进行标注
+			private var namelast:String="";
+			
+			public function getJZW(strname:String):void
+			{
+				//				time.stop();
+//				Alert.show("iframe传值过来="+strname);
+				if (namelast != strname)
+				{
+					JZWgraLayer.clear(); //当选择的目标切换时候就去除掉标注
+				}
+				if (strname != null && strname != "" && namelast != strname)
+				{
+					
+					MapUni.errorWindow("iframe传值过来="+strname);
+					namelast=strname;
+					var querytask:QueryTask=new QueryTask(layerUrl1);
+					querytask.useAMF=false;
+					var query:Query=new Query();
+					query.outFields=["*"];
+					query.where=nameField1+"='" + strname + "'";
+					query.returnGeometry=true;
+					querytask.execute(query, new AsyncResponder(onresult, onfault));
+					function onresult(featureset:FeatureSet, token:Object=null):void
+					{
+						var ext:Extent=new Extent();
+						for each (var gra:Graphic in featureset.features)
+						{
+							MapUni.errorWindow("查找到的个数为："+featureset.features.length.toString()+"mingcheng="+gra.attributes["NAME"].toString());
+							var picsym:PictureMarkerSymbol=new PictureMarkerSymbol();
+							[Embed(source='assets/yutuImages/img/危险源40.png')]
+							var picEmbeded1:Class;
+							picsym.width=20;
+							picsym.height=20;
+							picsym.source=picEmbeded1;
+							map.extent=gra.geometry.extent.expand(10);
+							gra.geometry=gra.geometry.extent.center as MapPoint;
+							gra.symbol=picsym;
+							JZWgraLayer.add(gra);
+							gra.toolTip=gra.attributes[nameField1].toString();
+							//						(gra.geometry as Multipoint).points[0]
+							//						var exttemp:Extent = new Extent((gra.geometry as Multipoint).points[0].x,(gra.geometry as Multipoint).points[0].y,(gra.geometry as Multipoint).points[0].x,(gra.geometry as Multipoint).points[0].y);
+							//						twoD_map.extent  = ext.union(ext);
+							//						ext = gra.geometry.extent.expand(1.5);
+							
+							MapUni.popupInfoWindow(map, gra, strname, "名称：好\n地址：很好", true);
+						}
+						//					twoD_map.extent = ext;
+						
+					}
+					function onfault(info:Object, token:Object=null):void
+					{
+						Alert.show("查询错误");
+					}
+				}
+			}
+			private function drawSymbol(longANDlontARRAY:Array):void
+			{
+				iframe.callIFrameFunction("drawSymbol",longANDlontARRAY);
+			}
+
+		]]>
+	</fx:Script>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.WidgetStates;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.layers.Layer;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			import com.mapUni.BaseClass.MapUni;
+			
+			import mx.controls.Label;
+			
+			private function init():void
+			{
+//				wTemplate.addTitlebarButton("asdfasdf", "透视分析", funct1);
+//				wTemplate.addTitlebarButton("asdfasdf", "挖方分析", funct2);
+//				wTemplate.addTitlebarButton("asdfasdf", "动画路径", funct3);
+			}
+			private function onConfigLoad():void
+			{
+				if(configXML)
+				{
+					var server3dLabel:String = configXML.server3dLabel;
+					var server3dUrl:String = configData.webService[server3dLabel];
+					iframe.source = server3dUrl;
+					
+					
+					var layerXML:XML = getLayerParam("factory");
+					var mapLabel:String = layerXML.@mapLabel;
+					var layerName:String = layerXML.@layerName;
+					var nameField:String = layerXML.@nameField;
+					
+					var layerUrl:String = getLayerUrl(mapLabel, layerName);
+					
+					  layerXML1 = getLayerParam("bulding");
+					  mapLabel1 = layerXML1.@mapLabel;
+					  layerName1  = layerXML1.@layerName;
+					  nameField1  = layerXML1.@nameField;
+					  layerUrl1 = getLayerUrl(mapLabel1, layerName1);
+					var map3dServer:Layer = map.getLayer(mapLabel);
+					map3dServer.visible = true;
+					//查询企业，标注企业  hw0724 三维联动测试
+					map.addLayer(threeDGraphicLayer);
+					map.addLayer(JZWgraLayer);
+					threeDGraphicLayer.addEventListener(MouseEvent.CLICK,onGraClick);
+					searchFactories(layerUrl,nameField);
+					time.addEventListener(TimerEvent.TIMER, onTimeUp);
+					time.start();
+					
+				}
+				else
+				{
+					MapUni.errorWindow("配置文件信息有误");
+				}
+			}
+
+			
+			private function funct1():void
+			{
+				iframe.callIFrameFunction("drawSymbol");
+			}
+			
+			
+			private function funct2():void
+			{
+				iframe.callIFrameFunction("removeSymbol");
+			}
+			
+			
+			private function funct3():void
+			{
+				iframe.callIFrameFunction("pathAnalyse");
+			}
+			
+			
+			
+			/**
+			 * 功能：获取图层配置信息 
+			 */		
+			private function getLayerParam(layerId:String):XML
+			{
+				var layerList:XMLList = configXML.layers.layer;
+				
+				for (var i:int=0; i<layerList.length(); i++)
+				{
+					if(layerList[i].@id == layerId)
+					{
+						return layerList[i];
+					}
+				}
+				return null;
+			}
+			
+			
+			/**
+			 * 功能：获取图层地址
+			 */		
+			private function getLayerUrl(mapLabel:String, layerName:String):String
+			{
+				var mapLayer:Layer = map.getLayer(mapLabel);
+				var layerUrl:String = MapUni.layerUrl(mapLayer, layerName);
+				
+				return layerUrl;
+			}
+			
+			
+			private function onWidgetMove():void
+			{
+				iframe.invalidateDisplayList();
+			}
+			
+			private function onWidgetOpen():void
+			{
+				wTemplate.resizeButton.visible = false;
+				wTemplate.enableResizeButton = false;
+			} 
+			
+			/* override protected function notifyStateChanged(widgetState:String):void
+			{
+				super.notifyStateChanged(widgetState);
+				
+				if(widgetState == WidgetStates.WIDGET_OPENED)
+				{
+					wContainer.visible = true;
+					iframe.visible = true;
+				}
+				else
+				{
+					wContainer.visible = false;
+					iframe.visible = false;
+				}
+			}
+			 */
+		]]>
+	</fx:Script>
+	
+	<!--<s:BorderContainer id="wContainer"  visible="false" 
+					   width="600" height="450"
+					   >
+		<s:layout>
+			<s:VerticalLayout verticalAlign="bottom" paddingLeft="1" paddingRight="0" paddingBottom="0"  />
+		</s:layout>
+		<s:HGroup  height="40"
+				  horizontalAlign="center" verticalAlign="middle"
+				  >
+			<s:BorderContainer width="50%" height="20" 
+							   cornerRadius="10" backgroundColor="{getStyle('contentBackgroundColor')}"
+							   >
+				<s:layout>
+					<s:HorizontalLayout horizontalAlign="center" verticalAlign="middle" />
+				</s:layout>
+				<s:Label  id="labelName" text="图   例" 
+						  color="{getStyle('color')}"  fontSize="14" fontWeight="bold"
+						  textAlign="center"  verticalAlign="middle"
+						  />
+			</s:BorderContainer>
+		</s:HGroup>
+		<flexiframe:IFrame id="iframe" 
+						   width="100%"  height="450"
+						   />
+		
+		
+	</s:BorderContainer>-->
+	
+	
+	
+	<viewer:WidgetTemplate id="wTemplate" width="600" height="510"
+						   open="onWidgetOpen()"
+						   move="onWidgetMove()" 
+						   moveUpdate="onWidgetMove()"
+						   >
+		<flexiframe:IFrame id="iframe" visible="{wTemplate.visible}" width="100%" height="100%" minHeight="300"/>
+		
+	</viewer:WidgetTemplate>
+
+</viewer:BaseWidget>

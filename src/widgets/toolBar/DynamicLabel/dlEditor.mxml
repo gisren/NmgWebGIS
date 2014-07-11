@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark" creationComplete="group1_creationCompleteHandler(event)"
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="237" height="166">
+	<s:layout>
+		<s:VerticalLayout/>
+	</s:layout>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.components.supportClasses.InfoWindow;
+			import com.esri.ags.geometry.MapPoint;
+			
+			import mx.events.FlexEvent;
+			import mx.managers.PopUpManager;
+			
+			import spark.events.TextOperationEvent;
+			
+			[Bindable]private var fldName:String="name";
+			[Bindable]private var fldContent:String="content";
+			
+			[Bindable] private var _graphic:Graphic;
+			[Bindabel] private var _pntName:String;
+			[Bindabel] private var _pntContent:String;
+			
+			public static var DLSAVE:String="save";
+			public static var DLDELETE:String="delete";
+			public static var SAVEPICTURE:String="savePicture";
+			
+			protected function group1_creationCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+			}
+			
+			public function set graphic(value:Graphic):void
+			{
+				_graphic=value;
+				
+				tiName.text = _graphic.attributes[fldName].toString();
+				if(_graphic.attributes[fldContent])
+				{
+					tiContent.text = _graphic.attributes[fldContent].toString();
+				}
+			}
+			
+			public function get graphic():Graphic{
+				return _graphic;
+			}
+			
+			
+			public function set pntName(value:String):void{
+				_pntName=value;
+			}
+			
+			public function set pntContent(value:String):void{
+				_pntContent=value;
+			}
+
+
+			protected function button1_clickHandler(event:MouseEvent):void
+			{
+				if(!_graphic.attributes)
+					_graphic.attributes=new Array();
+				
+				_graphic.attributes[fldName]=tiName.text;
+				_graphic.attributes[fldContent]=tiContent.text;	
+				
+				var evt:Event=new Event(DLSAVE);
+				//evt.currentTarget=_graphic;
+				dispatchEvent(evt);
+			}
+			
+			
+			private function closeMe():void
+			{
+				PopUpManager.removePopUp(this);
+			}
+
+
+			protected function btnDel_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				
+				var evt:Event=new Event(DLDELETE);
+				//evt.=_graphic;
+				dispatchEvent(evt);
+			}
+			
+
+
+			protected function imgSavePicture_clickHandler(event:MouseEvent):void
+			{				
+				var evt:Event=new Event(SAVEPICTURE);
+				dispatchEvent(evt);
+			}
+
+
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Group width="100%" height="168">
+		<mx:Image id="imgSavePicture"
+				  width="19" height="20" 
+				  buttonMode="true" 
+				  useHandCursor="true"
+				  source="assets/images/group-layer.png" toolTip="保存当前地图" 
+				  click="imgSavePicture_clickHandler(event)"  x="180" y="135" tabIndex="4"/>
+		<s:Label x="13" y="10" text="名称："/>
+		<s:Label x="13" y="39" text="说明："/>
+		<s:TextInput x="52" y="6" width="159" id="tiName" maxChars="15"  tabIndex="0"/><!--text="{_graphic.attributes[fldName].toString()}"-->
+		<s:Button x="42" y="135" label="保存"  width="45" click="button1_clickHandler(event)" tabIndex="2"/>
+		<s:Button x="94" y="135" label="删除" width="45" id="btnDel" click="btnDel_clickHandler(event)" tabIndex="3"/>
+		<s:TextArea x="52" y="39" width="159" height="88" id="tiContent"   tabIndex="1"/><!--text="{_graphic.attributes[fldContent].toString()}"-->
+	</s:Group>
+</s:Group>

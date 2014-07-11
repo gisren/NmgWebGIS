@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				      >
+
+
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.Map;
+			import com.esri.ags.geometry.Extent;
+			import com.esri.ags.geometry.MapPoint;
+			[Bindable]  
+			public var imgSource:String;
+			[Bindable]  
+			public var resultname:String;
+			[Bindable]  
+			public var distance:String;
+			public var gc:Graphic;
+			public var map:Map;
+			public var xmlInfos:Array;
+			protected function img_clickHandler(event:MouseEvent):void
+			{
+				if(gc !=null && gc !=null)
+				{
+					var mapPoint:MapPoint = gc.geometry as MapPoint;
+					
+					map.extent = new Extent(mapPoint.x-0.005,mapPoint.y-0.005,mapPoint.x+0.005,mapPoint.y+0.005);
+					var winContent:BufferInfoWindow = new BufferInfoWindow();
+					var obj:Object = this.GetInfoString(gc);
+					if(obj !=null)
+					{
+						winContent.title =obj.title;
+						winContent.content = obj.att;
+						winContent.grachic = gc;		
+						map.infoWindow.content = winContent;
+						map.infoWindow.show(gc.geometry as MapPoint);
+					}
+				}
+			}
+
+
+			protected function labname_clickHandler(event:MouseEvent):void
+			{
+				if(gc !=null && gc !=null)
+				{
+				var mapPoint:MapPoint = gc.geometry as MapPoint;
+				
+					map.extent = new Extent(mapPoint.x-0.005,mapPoint.y-0.005,mapPoint.x+0.005,mapPoint.y+0.005);
+					var winContent:BufferInfoWindow = new BufferInfoWindow();
+					var obj:Object = this.GetInfoString(gc);
+					if(obj !=null)
+					{
+						winContent.title =obj.title;
+						winContent.content = obj.att;
+						winContent.grachic = gc;		
+						map.infoWindow.content = winContent;
+						map.infoWindow.show(gc.geometry as MapPoint);
+					}
+				}
+			}
+			//将信息组合成一个字符串
+			private function GetInfoString(graphic:Graphic):Object
+			{
+				var obj:Object = new Object();
+				if(graphic != null)
+				{
+					var layerid:Number =Number(graphic.attributes["layerid"].toString());
+					var info:XmlLayerInfo = getInfoByLayerID(layerid);
+					var att:String = "";	
+					var title:String="";
+					if(info.fields.length <=0 )
+					{	
+						att ="";
+					}
+					else
+					{
+						for(var i:int=0;i<info.fields.length;i++)
+						{
+							var field:LayerFieldInfo =info.fields[i] as LayerFieldInfo;
+							att =att+ field.description+":"+graphic.attributes[field.fieldName]+"\r\n";
+							if(i==0)
+							{
+								title = graphic.attributes[field.fieldName].toString();
+							}
+						}
+						obj.title=title;
+						obj.att=att;
+					}
+					return obj;
+				}
+				return null;
+			}
+			private function getInfoByLayerID(layerid:Number):XmlLayerInfo
+			{
+				if(this.xmlInfos != null && this.xmlInfos.length >0)
+				{
+					for each( var info:XmlLayerInfo in this.xmlInfos)
+					{
+						if(info.layerID == int(layerid))
+						{
+							return info;
+						}
+					}
+				}
+				
+				return null;
+			}
+
+		]]>
+	</fx:Script>
+
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+
+		<s:HGroup>
+			<mx:Image id="img" click="img_clickHandler(event)" source="{imgSource}" height="16" width="16"/>
+			<s:Label id="labname" text="{resultname}" width="200" click="labname_clickHandler(event)"/>
+			<s:Label id="labdistance" text="{distance}"/>
+			
+		</s:HGroup>		
+
+	
+</mx:Canvas>

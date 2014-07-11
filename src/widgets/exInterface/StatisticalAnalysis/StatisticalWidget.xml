@@ -1,0 +1,471 @@
+<?xml version="1.0" ?>
+<configuration>
+
+	<!-- 统计分析目录树 -->
+	<statItem>
+	
+		<!-- 主目录 -->
+		<mainItem>
+			<item label="2010年污染源统计分析" 
+				  icon="assets/yutuImages/proIcon/zxjkqy.png" 
+				  nextLevel="pollStat"
+				  />
+			<item label="2010年危险废物集中处置统计分析" 
+				  icon="assets/yutuImages/proIcon/wxfwczc.png"
+				  id="dengerWaste"
+				  />
+			<item label="2010年火电企业排放情况统计分析" 
+				  icon="assets/yutuImages/proIcon/dc.png"
+				  id="powerStation"
+				  />
+			<item label="2010年工业污染治理项目统计分析" 
+				  icon="assets/yutuImages/proIcon/各地区工业污染治理项目统计分析.png"
+				  id="pollutionControl"
+				  />
+			<item label="2011年排污权交易情况统计分析" 
+				  icon="assets/yutuImages/proIcon/排污权交易统计分析.png"
+				  id="sewageCanOutInfo"
+				  />
+			<!--<item label="2010年排污收费情况统计分析" 
+				  icon="assets/yutuImages/proIcon/tj_pwsf.png"
+				  id="PWSFInfo"
+				  />-->
+			<item label="2012年信访统计分析" 
+				  icon="assets/yutuImages/proIcon/信访统计分析.png"
+				  nextLevel="petitionStat"
+				  />
+			
+		</mainItem>
+		
+		<!-- 污染源统计分析子目录 -->
+		<pollStat>
+			<item label="主要流域污染源分布统计分析" 
+				  icon="assets/yutuImages/proIcon/zxjkqy.png" 
+				  id="pollRiverEnt"
+				  />
+			<item label="污染源所属行业区域统计分析" 
+				  icon="assets/yutuImages/proIcon/zxjkqy.png" 
+				  id="pollIndustryEnt"
+				  />
+			<!--<item label="工业污染源区域能量消耗情况统计分析" 
+				  icon="assets/yutuImages/proIcon/zxjkqy.png" 
+				  id="pollEnergyUse"
+				  />-->
+			<item label="废水排放情况统计分析" 
+				  icon="assets/yutuImages/proIcon/zxjkqy.png" 
+				  id="pollWaterOutput"
+				  />
+			<item label="废气排放情况统计分析" 
+				  icon="assets/yutuImages/proIcon/zxjkqy.png" 
+				  id="pollAirOutput"
+				  />
+			<!--<item label="固体废物产生量统计专题" 
+				  icon="assets/yutuImages/proIcon/zxjkqy.png" 
+				  id="pollSolidWaste"
+				  />-->
+		</pollStat>
+		
+		<!-- 信访统计分析子目录 -->
+		<petitionStat>
+			<item label="违法情况统计分析"
+				  icon="assets/yutuImages/proIcon/信访统计分析.png"
+				  id="petiIllegalInfo"
+				  />
+			<item label="案件来源统计分析"
+				  icon="assets/yutuImages/proIcon/信访统计分析.png"
+				  id="petiSource"
+				  />
+			<item label="举报方式统计分析"
+				  icon="assets/yutuImages/proIcon/信访统计分析.png"
+				  id="petiReportType"
+				  />
+			<item label="满意率统计分析"
+				  icon="assets/yutuImages/proIcon/信访统计分析.png"
+				  id="petiSatisfactionRate"
+				  />
+			<item label="投诉污染类型统计分析"
+				  icon="assets/yutuImages/proIcon/信访统计分析.png"
+				  id="petiReportPollType"
+				  />
+			<item label="处理时效统计分析"
+				  icon="assets/yutuImages/proIcon/信访统计分析.png"
+				  id="petiDealAging"
+				  />
+			<item label="重复访统计分析"
+				  icon="assets/yutuImages/proIcon/信访统计分析.png"
+				  id="petiRepeatReport"
+				  />
+		</petitionStat>
+		
+	</statItem>
+	
+	<!-- 接口目录 -->
+	<interfaceItem>
+		<item label="受纳水体排污值统计"
+			  id="riverMonitorValue"
+			  />
+	</interfaceItem>
+	
+	
+    <!-- 数据连接 --> 
+	<webService>
+	
+    	<dengerWaste label="危险废物集中处置区域统计"  
+			    	serviceLabel="dataService"  
+			    	functionName="TJ_poll_waste" 
+			    	/>
+    	<powerStation label="火电企业排放情况统计"  
+			    	serviceLabel="dataService"  
+			    	functionName="TJ_poll_power_station" 
+			    	/>
+    	<pollutionControl label="工业污染治理项目区域统计"  
+			    	serviceLabel="dataService"  
+			    	functionName="TJ_poll_governance_project" 
+			    	/>
+    	<pollRiverEnt label="污染源主要流域分布统计"  
+			    	serviceLabel="dataService"  
+			    	functionName="TJ_poll_river" 
+			    	/>
+    	<pollIndustryEnt label="污染源所属行业统计"  
+			    	serviceLabel="dataService"  
+			    	functionName="TJ_poll_industry" 
+			    	/>
+    	<!--<pollEnergyUse label="污染源区域能源消耗统计"  
+			    	serviceLabel="dataService"  
+			    	functionName="TJ_poll_energy_use" 
+			    	/>-->
+    	<pollWaterOutput label="污染源区域废水排放统计"  
+			    	serviceLabel="dataService"  
+			    	functionName="TJ_poll_water_output" 
+			    	/>
+    	<pollAirOutput label="污染源区域废气排放统计"  
+			    	serviceLabel="dataService"  
+			    	functionName="TJ_poll_air_output" 
+			    	/>
+    	<pollSolidWaste label="污染源区域固废产生量统计"  
+			    	serviceLabel="dataService"  
+			    	functionName="TJ_poll_solid_output" 
+			    	/>
+    	<sewageCanOutInfo label="排污权交易年度企业情况"  
+			    	serviceLabel="dataService"  
+			    	functionName="TJ_pwq_statInfo" 
+			    	/>
+    	<petiIllegalInfo label="信访违法情况统计"  
+			    	serviceLabel="dataService"  
+			    	functionName="TJ_peti_illegal_info" 
+			    	/>
+    	<petiSource label="信访案件来源统计"  
+			    	serviceLabel="dataService"  
+			    	functionName="TJ_peti_petition_source" 
+			    	/>
+    	<petiReportType label="信访举报方式统计"  
+			    	serviceLabel="dataService"  
+			    	functionName="TJ_peti_report_type" 
+			    	/>
+    	<petiSatisfactionRate label="信访满意率统计"  
+			    	serviceLabel="dataService"  
+			    	functionName="TJ_peti_satisfaction_rate" 
+			    	/>
+    	<petiReportPollType label="信访举报污染类型统计"  
+			    	serviceLabel="dataService"  
+			    	functionName="TJ_peti_report_poll_type" 
+			    	/>
+    	<petiDealAging label="信访处理时效统计"  
+			    	serviceLabel="dataService"  
+			    	functionName="TJ_peti_deal_aging" 
+			    	/>
+    	<petiRepeatReport label="信访重复举报统计"  
+			    	serviceLabel="dataService"  
+			    	functionName="TJ_peti_repeat_report" 
+			    	/>
+    	<PWSFInfo label="排污收费情况统计"  
+			    	serviceLabel="dataService"  
+			    	functionName="TJ_pwsf_statInfo" 
+			    	/>
+    </webService>
+    
+    
+    <!-- 各统计项参数 --><!-- columnChart pieChart lineChart barChart mapRenderer -->
+    <statParameter>
+    	
+    	<dengerWaste label="危险废物集中处置区域统计" 
+    				 windowChart="columnChart"
+				     mapChart="pieChart"
+				     regionLayer="cityLayer"
+				     isLevelLayer="true"
+				     regionIdField="HC101"
+				     nameField="HC102"
+				     valueFields="HZ308,HZ314"
+				     valueNames="处置量(万吨),综合利用量(万吨)"
+				     colors="0xFF4A4A,0x87FF87,0x5252FF,0xD64DD6,0xC6F7A5,0x399A9C,0x5A55F7,0xC65552,0x7BB6FF,0xFF8040,0xFFFF80"
+				     />
+    	<powerStation label="火电企业排放情况统计" 
+    				 windowChart="columnChart"
+				     mapChart="columnChart"
+				     regionLayer="cityLayer"
+				     isLevelLayer="true"
+				     regionIdField="HC101"
+				     nameField="HC102"
+				     valueFields="HZH3008,HZH3038,HZH3075"
+				     valueNames="煤炭消费总量(万吨),废水排放量(万吨),工业固体废物产生量(万吨)"
+				     colors="0xFF4A4A,0x87FF87,0x5252FF,0xD64DD6,0xC6F7A5,0x399A9C,0x5A55F7,0xC65552,0x7BB6FF,0xFF8040,0xFFFF80"
+				     />
+    	<pollutionControl label="工业污染治理项目区域统计" 
+				     windowChart="columnChart"
+				     mapChart="pieChart"
+				     regionLayer="cityLayer"
+				     isLevelLayer="true"
+				     regionIdField="HC101"
+				     nameField="HC102"
+				     valueFields="HZ203,HZ204,HZ205,HZ206,HZ207,HZ211"
+				     valueNames="废水治理项目,燃料燃烧废气治理项目,工业废气治理项目,固体废物治理项目,噪声治理项目,其他治理项目"
+				     colors="0xFF4A4A,0x87FF87,0x5252FF,0xD64DD6,0xC6F7A5,0x399A9C,0x5A55F7,0xC65552,0x7BB6FF,0xFF8040,0xFFFF80"
+				     />
+    	<pollRiverEnt label="污染源主要流域分布统计" 
+				     windowChart="pieChart"
+				     nameField="RIVERNAME"
+				     valueFields="ENTNUM"
+				     valueNames="污染源数量"
+				     colors="0xFF4A4A,0x87FF87,0x5252FF,0xD64DD6,0xC6F7A5,0x399A9C,0x5A55F7,0xC65552,0x7BB6FF,0xFF8040,0xFFFF80"
+				     />
+    	<pollIndustryEnt label="污染源所属行业统计" 
+				     windowChart="pieChart"
+				     nameField="ENTINDUSTRY"
+				     valueFields="ENTNUM"
+				     valueNames="污染源数量"
+				     colors="0xFF4A4A,0x87FF87,0x5252FF,0xD64DD6,0xC6F7A5,0x399A9C,0x5A55F7,0xC65552,0x7BB6FF,0xFF8040,0xFFFF80"
+				     />
+    	<!--<pollEnergyUse label="污染源区域能源消耗统计" 
+				     windowChart="columnChart"
+				     mapChart="columnChart"
+				     regionLayer="cityLayer"
+				     regionIdField="HC101"
+				     nameField="HC102"
+				     valueFields="HZ1007,HZ1010"
+				     valueNames="工业用水总量,煤炭消费总量"
+				     colors="0xff0000,0x00ff00,0x0000ff,0xFF4500,0x7CFC00,0x4169E1,0xFD6347,0x9ACD32,0x4682B4,0xFFC0CB,0x98FB98"
+				     />-->
+    	<pollWaterOutput label="污染源区域废水排放统计" 
+					 windowChart="columnChart"
+				     mapChart="columnChart"
+				     regionLayer="cityLayer"
+				     isLevelLayer="true"
+				     regionIdField="HC101"
+				     nameField="HC102"
+				     valueFields="HZ1037,HZ1048,HZ1049"
+				     valueNames="工业废水排放量(万吨),化学需氧量排放量(吨),氨氮排放量(吨)"
+				     colors="0xFF4A4A,0x87FF87,0x5252FF,0xD64DD6,0xC6F7A5,0x399A9C,0x5A55F7,0xC65552,0x7BB6FF,0xFF8040,0xFFFF80"
+				     />
+    	<pollAirOutput label="污染源区域废气排放统计" 
+				     windowChart="columnChart"
+				     mapChart="columnChart"
+				     regionLayer="cityLayer"
+				     isLevelLayer="true"
+				     regionIdField="HC101"
+				     nameField="HC102"
+				     valueFields="HZ1071,HZ1077,HZ1080"
+				     valueNames="二氧化硫(吨),氮氧化物(吨),烟尘(吨)"
+				     colors="0xFF4A4A,0x87FF87,0x5252FF,0xD64DD6,0xC6F7A5,0x399A9C,0x5A55F7,0xC65552,0x7BB6FF,0xFF8040,0xFFFF80"
+				     />
+    	<pollSolidWaste label="污染源区域固废产生量统计" 
+				     windowChart="lineChart"
+				     mapChart="mapRenderer"
+				     regionLayer="cityLayer"
+				     isLevelLayer="true"
+				     regionIdField="HC101"
+				     nameField="HC102"
+				     valueFields="HZ1085"
+				     valueNames="固体废物产生量(万吨)"
+				     colors="0xFF4A4A,0x87FF87,0x5252FF,0xD64DD6,0xC6F7A5,0x399A9C,0x5A55F7,0xC65552,0x7BB6FF,0xFF8040,0xFFFF80"
+				     /> 
+    	<sewageCanOutInfo label="排污权交易年度企业情况" 
+				     windowChart="columnChart"
+				     mapChart="columnChart"
+				     regionLayer="cityLayer"
+				     regionIdField="CITY_CODE"
+				     nameField="CITY_NAME"
+				     valueFields="COD,S02"
+				     valueNames="化学需氧量(吨),二氧化硫(吨)"
+				     colors="0xFF4A4A,0x87FF87,0x5252FF,0xD64DD6,0xC6F7A5,0x399A9C,0x5A55F7,0xC65552,0x7BB6FF,0xFF8040,0xFFFF80"
+				     />
+    	<petiIllegalInfo label="信访违法情况统计" 
+				     windowChart="columnChart"
+				     mapChart="pieChart"
+				     regionLayer="cityLayer"
+				     regionIdField="REGION_CODE"
+				     nameField="CBDW"
+				     valueFields="GJTTDLHSCNLGYHCP,WFGFGLYGFLFG,WFHBSPZD,WFHBSTSZD,SSBQ,CBPF,TPLP,QTWF,WQTWF"
+				     valueNames="国家淘汰的落后生产能力、工艺和产品,违反固废管理有关法律法规,违反环保审批制度,违反环保“三同时”制度,设施不全,超标排放,偷排漏排,其他违法,无违法情况"
+				     colors="0xFF4A4A,0x87FF87,0x5252FF,0xD64DD6,0xC6F7A5,0x399A9C,0x5A55F7,0xC65552,0x7BB6FF,0xFF8040,0xFFFF80"
+				     />
+    	<petiSource label="信访案件来源统计" 
+				     windowChart="columnChart"
+				     mapChart="columnChart"
+				     regionLayer="cityLayer"
+				     regionIdField="REGION_CODE"
+				     nameField="CBDW"
+				     valueFields="GZ,SZ,TP,ZJSL,HJ"
+				     valueNames="国转,省转,厅批,直接受理,合计"
+				     colors="0xFF4A4A,0x87FF87,0x5252FF,0xD64DD6,0xC6F7A5,0x399A9C,0x5A55F7,0xC65552,0x7BB6FF,0xFF8040,0xFFFF80"
+				     />
+    	<petiReportType label="信访举报方式统计" 
+				     windowChart="columnChart"
+				     mapChart="pieChart"
+				     regionLayer="cityLayer"
+				     regionIdField="REGION_CODE"
+				     nameField="CBDW"
+				     valueFields="LD,LX,WLJB,LF"
+				     valueNames="来电,来信,网络举报,来访"
+				     colors="0xFF4A4A,0x87FF87,0x5252FF,0xD64DD6,0xC6F7A5,0x399A9C,0x5A55F7,0xC65552,0x7BB6FF,0xFF8040,0xFFFF80"
+				     />
+    	<petiSatisfactionRate label="信访满意率统计" 
+				     windowChart="columnChart"
+				     mapChart="pieChart"
+				     regionLayer="cityLayer"
+				     regionIdField="REGION_CODE"
+				     nameField="CBDW"
+				     valueFields="MY,JBMY,BMY,LXBS"
+				     valueNames="满意,基本满意,不满意,联系不上"
+				     colors="0xFF4A4A,0x87FF87,0x5252FF,0xD64DD6,0xC6F7A5,0x399A9C,0x5A55F7,0xC65552,0x7BB6FF,0xFF8040,0xFFFF80"
+				     />
+    	<petiReportPollType label="信访举报污染类型统计" 
+				     windowChart="columnChart"
+				     mapChart="pieChart"
+				     regionLayer="cityLayer"
+				     regionIdField="REGION_CODE"
+				     nameField="QY"
+				     valueFields="SWR,DQWR,GTFW,ZSWR,JSXM"
+				     valueNames="水污染,大气污染,固体废物,噪声污染,建设项目"
+				     colors="0xFF4A4A,0x87FF87,0x5252FF,0xD64DD6,0xC6F7A5,0x399A9C,0x5A55F7,0xC65552,0x7BB6FF,0xFF8040,0xFFFF80"
+				     />
+    	<petiDealAging label="信访处理时效统计" 
+				     windowChart="columnChart"
+				     mapChart="pieChart"
+				     regionLayer="cityLayer"
+				     regionIdField="REGION_CODE"
+				     nameField="CBDW"
+				     valueFields="JSHFS,BJSJWHFS"
+				     valueNames="及时回复数,不及时及未回复数"
+				     colors="0xFF4A4A,0x87FF87,0x5252FF,0xD64DD6,0xC6F7A5,0x399A9C,0x5A55F7,0xC65552,0x7BB6FF,0xFF8040,0xFFFF80"
+				     />
+    	<petiRepeatReport label="信访重复举报统计" 
+				     windowChart="columnChart"
+				     mapChart="pieChart"
+				     regionLayer="cityLayer"
+				     regionIdField="REGION_CODE"
+				     nameField="CBDW"
+				     valueFields="CF,CFF"
+				     valueNames="初访,重复访"
+				     colors="0xFF4A4A,0x87FF87,0x5252FF,0xD64DD6,0xC6F7A5,0x399A9C,0x5A55F7,0xC65552,0x7BB6FF,0xFF8040,0xFFFF80"
+				     />
+    	<PWSFInfo label="排污收费情况统计" 
+				     windowChart="columnChart"
+				     mapChart="columnChart"
+				     isLevelLayer="true"
+				     regionLayer="cityLayer"
+				     regionIdField="BUREAU_ID"
+				     nameField="HC102"
+				     valueFields="MONEY"
+				     valueNames="排污收费(万元)"
+				     colors="0xFF4A4A,0x87FF87,0x5252FF,0xD64DD6,0xC6F7A5,0x399A9C,0x5A55F7,0xC65552,0x7BB6FF,0xFF8040,0xFFFF80"
+				     />
+    </statParameter>
+    
+	
+	<!-- 行政区划图层 -->
+	<regionLayers>
+		<layer id="provinceLayer" mapLabel="specialMap" layerName="省界_new" idField="GB" nameField="NAME" />
+		<layer id="cityLayer" mapLabel="specialMap" layerName="市界_new" idField="GB" nameField="FNAME" />
+		<layer id="countyLayer" mapLabel="specialMap" layerName="县界_new" idField="GB" nameField="FNAME" />
+	</regionLayers>
+	
+	
+	<!-- 地图渲染颜色等级划分 -->
+	<colorLevels>
+		
+		<!-- 污染源区域固废产生量统计 -->
+		<pollSolidWaste>
+			<colorLevel minValue="0"
+						maxValue="200"
+						color="0x4B42FF"
+						/>
+			<colorLevel minValue="200"
+						maxValue="400"
+						color="0x2D9ADA"
+						/>
+			<colorLevel minValue="400"
+						maxValue="600"
+						color="0x7DFF81"
+						/>
+			<colorLevel minValue="600"
+						maxValue="800"
+						color="0xFFF94B"
+						/>
+			<colorLevel minValue="800"
+						maxValue="1000"
+						color="0xFF69E6"
+						/>
+			<colorLevel minValue="1000"
+						maxValue="1200"
+						color="0xFF192C"
+						/>
+		</pollSolidWaste>
+						
+	</colorLevels>
+	
+	
+	<!-- 0x2F08DE,0x7608DE,0xD308DE,0xDE088F,0xDE0853,0xDE0821 -->
+	<!-- 0x372DFF,0xAD00CE,0xF941FF,0xFF0004,0xFFCB3C,0xFFF200 -->
+	<!-- 0x4B42FF,0x50ECF6,0x7DFF81,0xFFF94B,0xFF69E6,0xFF192C -->
+	
+	<!--
+		<dengerWaste label="危险废物集中处置区域统计" 
+    	<powerStation label="火电企业排放情况统计" 
+    	<pollutionControl label="工业污染治理项目区域统计" 
+    	<pollRiverEnt label="污染源主要流域分布统计" 
+    	<pollIndustryEnt label="污染源所属行业统计" 
+    	<pollEnergyUse label="污染源区域能源消耗统计" 
+    	<pollWaterOutput label="污染源区域废水排放统计" 
+    	<pollAirOutput label="污染源区域废气排放统计" 
+    	<pollSolidWaste label="污染源区域固废产生量统计" 
+    	<sewageCanOutRegion label="排污权交易区域企业数量" 
+    	<sewageCanOutEnt label="排污权交易年度企业情况" 
+    	<petiIllegalInfo label="信访违法情况统计" 
+    	<petiSource label="信访案件来源统计" 
+    	<petiReportType label="信访举报类型统计" 
+    	<petiSatisfactionRate label="信访满意率统计" 
+    	<petiReportPollType label="信访举报污染类型统计" 
+    	<petiDealAging label="信访处理失效统计" 
+    	<petiRepeatReport label="信访重复举报统计" 
+    -->
+	
+</configuration>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    	
+
+
+
+
+		
+
+
+
+
+
+
+
+

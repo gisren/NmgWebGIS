@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+/*******************************************************************************
+*
+* Copyright (c) 2011 中科宇图天下科技有限公司
+*
+* 
+* 
+* // Author：
+* // Date：
+* 
+********************************************************************************/
+-->
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009"
+				xmlns:s="library://ns.adobe.com/flex/spark"
+				xmlns:mx="library://ns.adobe.com/flex/mx"
+				autoDrawBackground="false"
+				buttonMode="true"
+				minHeight="30"
+				width="100%"
+				useHandCursor="true"
+				dataChange="onDataChange()"
+				click="onItemClick()"
+				>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.ViewerContainer;
+			
+			import widgets.exInterface.StatisticalAnalysis.Control.StatEvent;
+			
+			private function onDataChange():void
+			{
+				if(data)
+				{
+					itemImage.source = data.icon;
+					itemLabel.text = data.label;
+				}
+			}
+			
+			
+			private function onItemClick():void
+			{
+				ViewerContainer.dispatchEvent(new StatEvent(StatEvent.STAT_ITEM_CLICK, data));
+			}
+
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<s:State name="normal"/>
+		<s:State name="hovered"/>
+	</s:states>
+	
+	<!-- 边框 -->
+	<s:Rect left="1" right="1" top="0" bottom="0"
+			radiusX="4"
+			radiusY="4">
+		<s:stroke>
+			<s:SolidColorStroke alpha="{getStyle('borderAlpha')}"
+								color="{getStyle('borderColor')}"
+								weight="1"/>
+		</s:stroke>
+	</s:Rect>
+	
+	<!-- 背景填充 -->
+	<s:Rect left="2" right="2" top="2" bottom="2"
+			radiusX="4"
+			radiusY="4"
+			>
+		<s:fill>
+			<s:SolidColor alpha="0.3"
+						  alpha.hovered="0.8"
+						  color.hovered="{getStyle('rollOverColor')}"
+						  color.normal="{getStyle('contentBackgroundColor')}"/>
+		</s:fill>
+	</s:Rect>
+		
+	<!-- 图层符号 -->
+	<mx:Image id="itemImage" 
+			  left="5"
+			  maxHeight="20"
+			  maxWidth="20"
+			  smoothBitmapContent="true"
+			  verticalCenter="0"
+			  >
+		<mx:filters>
+			<mx:GlowFilter alpha="0.5"
+						   blurX="10"
+						   blurY="10"
+						   color="#000000"
+						   />
+		</mx:filters>
+	</mx:Image>
+	
+	<!-- 专题名称 -->
+	<s:Label id="itemLabel" 
+			 left="30" 
+			 fontWeight="normal"
+			 verticalCenter="0"
+			 />
+	
+	
+	
+</s:ItemRenderer>
+
